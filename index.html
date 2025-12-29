@@ -1,19 +1,762 @@
-<!-- 4. Modelos inteligentes (Checkboxes) -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configura tu IA con Piper</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #764ba2;
+            --primary-light: #8e63cf;
+            --success: #25d366;
+            --bg-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        
+        body { 
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            animation: fadeIn 0.3s ease;
+        }
+        .view.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            padding: 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            flex-shrink: 0;
+        }
+        .header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+        
+        .back-btn { 
+            background: #f1f5f9; border: none; cursor: pointer; padding: 8px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); transition: all 0.2s;
+        }
+        .back-btn:hover { background: var(--border); color: var(--primary); }
+
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scrollbar-width: thin;
+        }
+
+        .field { margin-bottom: 15px; }
+        label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-main); }
+        input, textarea, select { 
+            width: 100%; padding: 12px; border: 1.5px solid var(--border); 
+            border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+            background: white;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+
+        .range-group { 
+            background: #f8fafc; padding: 10px; border-radius: 10px; 
+            display: flex; align-items: center; gap: 12px; margin-top: 4px;
+        }
+        .range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; }
+        .range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; }
+        .range-val { min-width: 40px; font-size: 0.85rem; color: var(--primary); font-weight: 800; text-align: right; }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 10px; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 0.8rem;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-test { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
+        .btn-test:hover { background: #bbf7d0; }
+        .btn-primary { background: #22c55e; color: white; }
+        .btn-primary:hover { background: #16a34a; }
+        .btn-secondary { background: #e9d5ff; color: #9333ea; border: 1px solid #d8b4fe; }
+        .btn-secondary:hover { background: #ddd6fe; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+
+        #avatar-preview-container { 
+            width: 110px; height: 110px; margin: 0 auto 15px; 
+            border: 3px dashed var(--border); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            overflow: hidden; cursor: pointer; position: relative;
+            background: white;
+        }
+        #avatar-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+        #preview-placeholder { color: var(--text-muted); text-align: center; font-size: 0.75rem; padding: 10px; }
+
+        .bot-list-grid { display: flex; flex-direction: column; gap: 12px; }
+        .bot-item {
+            background: #fff; border: 1.5px solid var(--border); border-radius: 15px;
+            padding: 12px; display: flex; align-items: center; gap: 12px;
+            cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .bot-item:hover { border-color: var(--primary); background: #fdfaff; }
+        .bot-img-mini { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
+        .bot-info-mini { flex: 1; }
+        .bot-info-mini h4 { margin: 0; font-size: 1rem; color: var(--text-main); }
+        .online-tag { font-size: 0.7rem; color: var(--success); display: flex; align-items: center; gap: 4px; font-weight: bold; }
+        .online-dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; }
+        .btn-delete { 
+            background: #fee2e2; color: #ef4444; border: none; padding: 8px; 
+            border-radius: 8px; cursor: pointer;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #f8fafc; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 0.95rem; line-height: 1.4; }
+        .user-msg { align-self: flex-end; background: #0084ff; color: white; border-bottom-right-radius: 4px; }
+        .ia-msg { align-self: flex-start; background: #e2e8f0; color: var(--text-main); border-bottom-left-radius: 4px; }
+
+        .chat-input-box {
+            padding: 15px; border-top: 1px solid var(--border);
+            display: flex; gap: 10px; background: #fff;
+        }
+
+        hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+        .section-title { color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; margin-bottom: 15px; display: block; }
+        
+        .nav-footer {
+          padding: 10px 20px;
+          border-top: 1px solid var(--border);
+          display: flex;
+          justify-content: space-around;
+          background: #fff;
+        }
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 0.7rem;
+          font-weight: bold;
+        }
+        .nav-item.active { color: var(--primary); }
+
+        .custom-model-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .custom-model-item span {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        .btn-remove-model {
+            background: #fee2e2;
+            color: #ef4444;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .btn-remove-model:hover {
+            background: #fecaca;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- VISTA 1: CONFIGURACIÓN -->
+    <div id="view-config" class="view active">
+        <div class="header">
+            <i data-lucide="plus-circle"></i>
+            <h2>Crear Personaje</h2>
+        </div>
+        <div class="scroll-content">
+            <!-- 1. Subir foto -->
+            <div class="field" style="text-align: center;">
+                <div id="avatar-preview-container" onclick="document.getElementById('ai-image').click()">
+                    <span id="preview-placeholder">Toca para subir foto</span>
+                    <img id="avatar-preview" src="" alt="Vista previa">
+                </div>
+                <input type="file" id="ai-image" accept="image/*" style="display: none;" onchange="previewImage(this)">
+            </div>
+            
+            <!-- 2. Nombre del personaje -->
             <div class="field">
-                <label>Modelos de Texto (selecciona uno):</label>
-                <div style="background: #f8fafc; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 400;">
-                        <input type="radio" name="ai-model" value="deepseek" checked style="width: auto;">
-                        <span>DeepSeek V3 (OpenRouter)</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 400;">
-                        <input type="radio" name="ai-model" value="groq" style="width: auto;">
-                        <span>Groq (Llama 3.3)</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 400;">
-                        <input type="radio" name="ai-model" value="gemini" style="width: auto;">
-                        <span>Google Gemini 2.5 Flash</span>
-                    </label>
-                    <div id="custom-models-checkboxes"></div>
+                <label>Nombre de la IA:</label>
+                <input type="text" id="ai-name" placeholder="Ej: Kasandra">
+            </div>
+
+            <!-- 3. Personalidad del personaje -->
+            <div class="field">
+                <label>Personalidad:</label>
+                <textarea id="ai-persona" rows="2" placeholder="Ej: Amigable y atenta"></textarea>
+            </div>
+
+            <!-- 4. Modelo inteligente -->
+            <div class="field">
+                <label>Modelo de Texto:</label>
+                <select id="ai-model">
+                    <option value="deepseek" selected>DeepSeek V3 (OpenRouter)</option>
+                    <option value="groq">Groq (Llama 3.3)</option>
+                    <option value="gemini">Google Gemini 2.5 Flash</option>
+                </select>
+            </div>
+
+            <!-- 5. Selección de voz -->
+            <div class="field">
+                <label>Voz (Piper Local):</label>
+                <select id="voice-select">
+                    <optgroup label="Mujeres">
+                        <option value="es_MX-claude-high.onnx">🇲🇽 Claude (High)</option>
+                        <option value="es_AR-daniela-high.onnx">🇦🇷 Daniela (High)</option>
+                    </optgroup>
+                    <optgroup label="Hombres">
+                        <option value="es_MX-ald-medium.onnx" selected>🇲🇽 Ald (Medium)</option>
+                        <option value="es_ES-carlfm-x_low.onnx">🇪🇸 CarlfM (X-Low)</option>
+                        <option value="es_ES-davefx-medium.onnx">🇪🇸 DaveFX (Medium)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- 6. Texto de prueba -->
+            <div class="field">
+                <label>Texto de prueba:</label>
+                <textarea id="test-text" rows="3" placeholder="Escribe un texto largo o completo para probar la voz..."></textarea>
+            </div>
+
+            <!-- 7. Velocidad -->
+            <div class="field">
+                <label>Velocidad (Rate):</label>
+                <div class="range-group">
+                    <input type="range" id="voice-rate" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('val-rate').innerText = this.value">
+                    <span class="range-val" id="val-rate">1.0</span>
                 </div>
             </div>
+
+            <!-- 8. Noise Scale (Tono) -->
+            <div class="field">
+                <label>Tono (Noise Scale):</label>
+                <div class="range-group">
+                    <input type="range" id="voice-pitch" min="0.1" max="1.5" step="0.05" value="0.667" oninput="document.getElementById('val-pitch').innerText = this.value">
+                    <span class="range-val" id="val-pitch">0.667</span>
+                </div>
+            </div>
+
+            <hr>
+            <span class="section-title">🤖 AGREGAR NUEVO MODELO DE IA</span>
+
+            <!-- 9. Nuevo modelo de IA -->
+            <div class="field">
+                <label>Nombre del Modelo:</label>
+                <input type="text" id="new-model-name" placeholder="Ej: GPT-4">
+            </div>
+
+            <div class="field">
+                <label>URL del Endpoint:</label>
+                <input type="text" id="new-model-url" placeholder="https://api.ejemplo.com/v1/chat/completions">
+            </div>
+
+            <!-- CAMPO NUEVO: API KEY -->
+            <div class="field">
+                <label>API Key:</label>
+                <input type="text" id="new-model-apikey" placeholder="sk-...">
+            </div>
+
+            <!-- 10. Botón agregar nuevo modelo -->
+            <button id="btn-add-model" class="btn btn-secondary" style="width: 100%; margin-bottom: 15px;">
+                <i data-lucide="plus"></i> Agregar Modelo de IA
+            </button>
+
+            <!-- Lista de modelos personalizados -->
+            <div id="custom-models-list"></div>
+
+            <hr>
+
+            <!-- 11. Botones: Voz, Crear y Guardar .wav -->
+            <div class="btn-group">
+                <button id="btn-test" class="btn btn-test">
+                    <i data-lucide="volume-2"></i> Voz
+                </button>
+                <button id="btn-save" class="btn btn-primary">
+                    <i data-lucide="check-circle"></i> Crear
+                </button>
+                <button id="btn-download" class="btn btn-secondary">
+                    <i data-lucide="file-audio"></i> .wav
+                </button>
+            </div>
+        </div>
+        
+        <!-- 12. Navegación inferior -->
+        <div class="nav-footer">
+          <div class="nav-item active" onclick="switchView('view-config')">
+            <i data-lucide="plus"></i><span>Nuevo</span>
+          </div>
+          <div class="nav-item" onclick="switchView('view-list')">
+            <i data-lucide="users"></i><span>Personajes</span>
+          </div>
+        </div>
+    </div>
+
+    <!-- VISTA 2: LISTA DE BOTS -->
+    <div id="view-list" class="view">
+        <div class="header">
+            <i data-lucide="users"></i>
+            <h2>Mis Personajes</h2>
+        </div>
+        <div class="scroll-content">
+            <div id="bot-list-container" class="bot-list-grid"></div>
+        </div>
+        <div class="nav-footer">
+          <div class="nav-item" onclick="switchView('view-config')">
+            <i data-lucide="plus"></i><span>Nuevo</span>
+          </div>
+          <div class="nav-item active" onclick="switchView('view-list')">
+            <i data-lucide="users"></i><span>Personajes</span>
+          </div>
+        </div>
+    </div>
+
+    <!-- VISTA 3: CHAT -->
+    <div id="view-chat" class="view">
+        <div class="header">
+            <button class="back-btn" onclick="switchView('view-list')"><i data-lucide="arrow-left"></i></button>
+            <img id="chat-avatar" src="" class="bot-img-mini" style="width: 38px; height: 38px;">
+            <div>
+                <h2 id="display-name" style="font-size: 1rem; line-height: 1;">IA Chat</h2>
+                <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
+            </div>
+        </div>
+        <div id="messages"></div>
+        <div class="chat-input-box">
+            <input type="text" id="user-input" placeholder="Escribe un mensaje...">
+            <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;"><i data-lucide="send"></i></button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const GEMINI_API_KEY = "AIzaSyDrnrPGrejdEJfdGeYyHdN_Sm_C0d9yh-0";
+    const OPENROUTER_API_KEY = "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";
+    const GROQ_API_KEY = "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";
+    const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
+
+    let bots = JSON.parse(localStorage.getItem('mis_bots_piper_v3') || '[]');
+    let customModels = JSON.parse(localStorage.getItem('custom_ia_models') || '[]');
+    let currentBot = null;
+    let tempImage = "";
+    let lastAudioBlob = null;
+
+    lucide.createIcons();
+
+    // Cargar modelos personalizados al select
+    function loadCustomModelsToSelect() {
+        const select = document.getElementById('ai-model');
+        // Remover opciones personalizadas anteriores
+        const options = select.querySelectorAll('option[data-custom="true"]');
+        options.forEach(opt => opt.remove());
+        
+        // Agregar modelos personalizados
+        customModels.forEach(model => {
+            const option = document.createElement('option');
+            option.value = `custom_${model.id}`;
+            option.textContent = model.name;
+            option.setAttribute('data-custom', 'true');
+            select.appendChild(option);
+        });
+    }
+
+    // Renderizar lista de modelos personalizados
+    function renderCustomModels() {
+        const container = document.getElementById('custom-models-list');
+        container.innerHTML = '';
+        
+        if (customModels.length > 0) {
+            const titleDiv = document.createElement('div');
+            titleDiv.style.cssText = 'margin: 15px 0 10px 0; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;';
+            titleDiv.textContent = '🤖 MODELOS PERSONALIZADOS';
+            container.appendChild(titleDiv);
+        }
+        
+        customModels.forEach(model => {
+            const div = document.createElement('div');
+            div.className = 'custom-model-item';
+            div.innerHTML = `
+                <span><strong>${model.name}</strong></span>
+                <button class="btn-remove-model" onclick="removeCustomModel(${model.id})">
+                    <i data-lucide="trash-2" size="14"></i> Eliminar
+                </button>
+            `;
+            container.appendChild(div);
+        });
+        lucide.createIcons();
+    }
+
+    // Agregar nuevo modelo personalizado
+    document.getElementById('btn-add-model').onclick = () => {
+        const name = document.getElementById('new-model-name').value.trim();
+        const url = document.getElementById('new-model-url').value.trim();
+        const apikey = document.getElementById('new-model-apikey').value.trim();
+        
+        if (!name || !url || !apikey) {
+            alert('Por favor completa todos los campos del nuevo modelo');
+            return;
+        }
+
+        const newModel = {
+            id: Date.now(),
+            name: name,
+            url: url,
+            apikey: apikey
+        };
+
+        customModels.push(newModel);
+        localStorage.setItem('custom_ia_models', JSON.stringify(customModels));
+        
+        // Limpiar campos
+        document.getElementById('new-model-name').value = '';
+        document.getElementById('new-model-url').value = '';
+        document.getElementById('new-model-apikey').value = '';
+        
+        loadCustomModelsToSelect();
+        renderCustomModels();
+    };
+
+    // Eliminar modelo personalizado
+    window.removeCustomModel = function(id) {
+        if (confirm('¿Estás seguro de eliminar este modelo de IA?')) {
+            customModels = customModels.filter(m => m.id !== id);
+            localStorage.setItem('custom_ia_models', JSON.stringify(customModels));
+            loadCustomModelsToSelect();
+            renderCustomModels();
+        }
+    };
+
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        if(viewId === 'view-config') document.querySelectorAll('.nav-item')[0].classList.add('active');
+        if(viewId === 'view-list') {
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+            renderBots();
+        }
+    }
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('avatar-preview');
+                const placeholder = document.getElementById('preview-placeholder');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                placeholder.style.display = 'none';
+                tempImage = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Función hablar - solo con velocidad y tono
+    async function hablar(texto, params = null, storeBlob = false) {
+        if (!texto) return;
+        
+        const voiceModel = params?.voice || document.getElementById('voice-select').value;
+        const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
+        const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
+        
+        try {
+            const lengthScale = 1 / rate;
+            
+            const response = await fetch(PIPER_SERVER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    text: texto, 
+                    model: voiceModel, 
+                    speaker_id: 0,
+                    length_scale: lengthScale, 
+                    noise_scale: pitch, 
+                    noise_w: 0.8, 
+                    sentence_silence: 0.2,
+                    phoneme_silence: 0.0
+                })
+            });
+            
+            if (!response.ok) return;
+            const data = await response.json();
+            const audioData = atob(data.audio);
+            const arrayBuffer = new Uint8Array(audioData.length);
+            for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
+            const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+            
+            if (storeBlob) lastAudioBlob = blob;
+
+            const audio = new Audio(URL.createObjectURL(blob));
+            await audio.play();
+        } catch (err) { console.error("Error Piper:", err); }
+    }
+
+    document.getElementById('btn-test').onclick = () => {
+        const txt = document.getElementById('test-text').value || "Probando la voz con velocidad y tono.";
+        hablar(txt, null, true);
+    };
+
+    document.getElementById('btn-download').onclick = () => {
+        if (!lastAudioBlob) {
+            alert("Primero debes presionar el botón de Voz para generar el audio.");
+            return;
+        }
+        const url = URL.createObjectURL(lastAudioBlob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `audio_config_${Date.now()}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    };
+
+    document.getElementById('btn-save').onclick = () => {
+        const name = document.getElementById('ai-name').value;
+        if(!name) {
+            alert('Por favor ingresa un nombre para el personaje');
+            return;
+        }
+
+        const botData = {
+            id: Date.now(),
+            name: name,
+            persona: document.getElementById('ai-persona').value,
+            model: document.getElementById('ai-model').value,
+            voice: document.getElementById('voice-select').value,
+            rate: document.getElementById('voice-rate').value,
+            pitch: document.getElementById('voice-pitch').value,
+            image: tempImage || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"
+        };
+
+        bots.push(botData);
+        localStorage.setItem('mis_bots_piper_v3', JSON.stringify(bots));
+        
+        // Reset campos
+        document.getElementById('ai-name').value = "";
+        document.getElementById('ai-persona').value = "";
+        document.getElementById('test-text').value = "";
+        document.getElementById('avatar-preview').style.display = 'none';
+        document.getElementById('preview-placeholder').style.display = 'block';
+        tempImage = "";
+        lastAudioBlob = null;
+
+        switchView('view-list');
+    };
+
+    function renderBots() {
+        bots = JSON.parse(localStorage.getItem('mis_bots_piper_v3') || '[]');
+        const container = document.getElementById('bot-list-container');
+        container.innerHTML = bots.length === 0 ? '<p style="text-align:center;color:#64748b;margin-top:20px;">No hay personajes aún.</p>' : '';
+        
+        bots.forEach(bot => {
+            const el = document.createElement('div');
+            el.className = 'bot-item';
+            el.innerHTML = `
+                <img src="${bot.image}" class="bot-img-mini">
+                <div class="bot-info-mini">
+                    <h4>${bot.name}</h4>
+                    <span class="online-tag"><span class="online-dot"></span> Online</span>
+                </div>
+                <button class="btn-delete" onclick="deleteBot(event, ${bot.id})"><i data-lucide="trash-2" size="16"></i></button>
+            `;
+            el.onclick = () => openChat(bot);
+            container.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    function deleteBot(e, id) {
+        e.stopPropagation();
+        bots = bots.filter(b => b.id !== id);
+        localStorage.setItem('mis_bots_piper_v3', JSON.stringify(bots));
+        renderBots();
+    }
+
+    function openChat(bot) {
+        currentBot = bot;
+        document.getElementById('display-name').innerText = bot.name;
+        document.getElementById('chat-avatar').src = bot.image;
+        document.getElementById('messages').innerHTML = "";
+        switchView('view-chat');
+    }
+
+    async function enviar() {
+        const input = document.getElementById('user-input');
+        const texto = input.value.trim();
+        if (!texto || !currentBot) return;
+
+        const dUser = document.createElement('div');
+        dUser.className = 'msg user-msg'; dUser.innerText = texto;
+        document.getElementById('messages').appendChild(dUser);
+        input.value = "";
+
+        const dIA = document.createElement('div');
+        dIA.className = 'msg ia-msg'; dIA.innerText = "...";
+        document.getElementById('messages').appendChild(dIA);
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+        try {
+            let resTxt = "";
+            const sys = `Eres ${currentBot.name}. Tu personalidad: ${currentBot.persona}. Responde conciso.`;
+
+            // Verificar si es modelo personalizado
+            if (currentBot.model.startsWith('custom_')) {
+                const modelId = parseInt(currentBot.model.replace('custom_', ''));
+                const customModel = customModels.find(m => m.id === modelId);
+                
+                if (customModel) {
+                    const r = await fetch(customModel.url, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${customModel.apikey}`
+                        },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: sys }, 
+                                { role: 'user', content: texto }
+                            ],
+                            max_tokens: 150
+                        })
+                    });
+                    const d = await r.json();
+                    resTxt = d.choices?.[0]?.message?.content || "Error en modelo personalizado.";
+                }
+            } else if (currentBot.model === 'deepseek') {
+                const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${OPENROUTER_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek/deepseek-chat',
+                        messages: [{ role: 'system', content: sys }, { role: 'user', content: texto }]
+                    })
+                });
+                const d = await r.json();
+                resTxt = d.choices[0].message.content;
+            } else if (currentBot.model === 'groq') {
+                const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [{ role: 'system', content: sys }, { role: 'user', content: texto }],
+                        max_tokens: 150
+                    })
+                });
+                const d = await r.json();
+                resTxt = d.choices[0].message.content;
+            } else {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const r = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `${sys} Usuario: ${texto}` }] }] })
+                });
+                const d = await r.json();
+                resTxt = d.candidates?.[0]?.content?.parts?.[0]?.text || "Error Gemini.";
+            }
+            dIA.innerText = resTxt;
+            await hablar(resTxt, currentBot);
+        } catch (e) { dIA.innerText = "Error: " + e.message; }
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    }
+
+    document.getElementById('btn-enviar').onclick = enviar;
+    document.getElementById('user-input').onkeypress = (e) => { if(e.key === 'Enter') enviar(); };
+    
+    window.onload = () => {
+        customModels = JSON.parse(localStorage.getItem('custom_ia_models') || '[]');
+        loadCustomModelsToSelect();
+        renderCustomModels();
+        if(bots.length > 0) switchView('view-list');
+    };
+</script>
+
+</body>
+</html>
