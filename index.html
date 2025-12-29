@@ -135,7 +135,6 @@
         .btn-secondary { background: #e9d5ff; color: #9333ea; border: 1px solid #d8b4fe; }
         .btn-secondary:hover { background: #ddd6fe; }
         .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #avatar-preview-container { 
             width: 110px; height: 110px; margin: 0 auto 15px; 
@@ -232,20 +231,6 @@
         .btn-remove-model:hover {
             background: #fecaca;
         }
-
-        .loading {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -259,6 +244,7 @@
             <h2>Crear Personaje</h2>
         </div>
         <div class="scroll-content">
+            <!-- 1. Subir foto -->
             <div class="field" style="text-align: center;">
                 <div id="avatar-preview-container" onclick="document.getElementById('ai-image').click()">
                     <span id="preview-placeholder">Toca para subir foto</span>
@@ -267,21 +253,29 @@
                 <input type="file" id="ai-image" accept="image/*" style="display: none;" onchange="previewImage(this)">
             </div>
             
+            <!-- 2. Nombre del personaje -->
             <div class="field">
                 <label>Nombre de la IA:</label>
                 <input type="text" id="ai-name" placeholder="Ej: Kasandra">
             </div>
 
+            <!-- 3. Personalidad del personaje -->
             <div class="field">
                 <label>Personalidad:</label>
                 <textarea id="ai-persona" rows="2" placeholder="Ej: Amigable y atenta"></textarea>
             </div>
 
+            <!-- 4. Modelo inteligente -->
             <div class="field">
                 <label>Modelo de Texto:</label>
-                <select id="ai-model"></select>
+                <select id="ai-model">
+                    <option value="deepseek" selected>DeepSeek V3 (OpenRouter)</option>
+                    <option value="groq">Groq (Llama 3.3)</option>
+                    <option value="gemini">Google Gemini 2.5 Flash</option>
+                </select>
             </div>
 
+            <!-- 5. Selección de voz -->
             <div class="field">
                 <label>Voz (Piper Local):</label>
                 <select id="voice-select">
@@ -297,11 +291,13 @@
                 </select>
             </div>
 
+            <!-- 6. Texto de prueba -->
             <div class="field">
                 <label>Texto de prueba:</label>
                 <textarea id="test-text" rows="3" placeholder="Escribe un texto largo o completo para probar la voz..."></textarea>
             </div>
 
+            <!-- 7. Velocidad -->
             <div class="field">
                 <label>Velocidad (Rate):</label>
                 <div class="range-group">
@@ -310,6 +306,7 @@
                 </div>
             </div>
 
+            <!-- 8. Noise Scale (Tono) -->
             <div class="field">
                 <label>Tono (Noise Scale):</label>
                 <div class="range-group">
@@ -321,6 +318,7 @@
             <hr>
             <span class="section-title">🤖 AGREGAR NUEVO MODELO DE IA</span>
 
+            <!-- 9. Nuevo modelo de IA -->
             <div class="field">
                 <label>Nombre del Modelo:</label>
                 <input type="text" id="new-model-name" placeholder="Ej: GPT-4">
@@ -331,17 +329,23 @@
                 <input type="text" id="new-model-url" placeholder="https://api.ejemplo.com/v1/chat/completions">
             </div>
 
+            <!-- CAMPO NUEVO: API KEY -->
             <div class="field">
                 <label>API Key:</label>
                 <input type="text" id="new-model-apikey" placeholder="sk-...">
             </div>
 
+            <!-- 10. Botón agregar nuevo modelo -->
             <button id="btn-add-model" class="btn btn-secondary" style="width: 100%; margin-bottom: 15px;">
                 <i data-lucide="plus"></i> Agregar Modelo de IA
             </button>
 
+            <!-- Lista de modelos personalizados -->
             <div id="custom-models-list"></div>
 
+            <hr>
+
+            <!-- 11. Botones: Voz, Crear y Guardar .wav -->
             <div class="btn-group">
                 <button id="btn-test" class="btn btn-test">
                     <i data-lucide="volume-2"></i> Voz
@@ -355,6 +359,7 @@
             </div>
         </div>
         
+        <!-- 12. Navegación inferior -->
         <div class="nav-footer">
           <div class="nav-item active" onclick="switchView('view-config')">
             <i data-lucide="plus"></i><span>Nuevo</span>
@@ -404,63 +409,40 @@
 </div>
 
 <script>
-    // ====================================
-    // CONFIGURACIÓN DEL BACKEND
-    // ====================================
-    const BACKEND_URL = "https://piper-backend-lyy2.vercel.app";
+    const GEMINI_API_KEY = "AIzaSyDrnrPGrejdEJfdGeYyHdN_Sm_C0d9yh-0";
+    const OPENROUTER_API_KEY = "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";
+    const GROQ_API_KEY = "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";
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
-    let models = [];
-    let personajes = [];
+    let bots = JSON.parse(localStorage.getItem('mis_bots_piper_v3') || '[]');
+    let customModels = JSON.parse(localStorage.getItem('custom_ia_models') || '[]');
     let currentBot = null;
     let tempImage = "";
     let lastAudioBlob = null;
 
     lucide.createIcons();
 
-    // ====================================
-    // INICIALIZACIÓN
-    // ====================================
-    window.onload = async () => {
-        await loadModels();
-        await loadPersonajes();
-        if(personajes.length > 0) switchView('view-list');
-    };
-
-    // ====================================
-    // MODELOS DE IA
-    // ====================================
-    async function loadModels() {
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/models`);
-            const data = await response.json();
-            if (data.success) {
-                models = data.models;
-                renderModelsSelect();
-                renderCustomModels();
-            }
-        } catch (err) {
-            console.error('Error cargando modelos:', err);
-        }
-    }
-
-    function renderModelsSelect() {
+    // Cargar modelos personalizados al select
+    function loadCustomModelsToSelect() {
         const select = document.getElementById('ai-model');
-        select.innerHTML = '';
+        // Remover opciones personalizadas anteriores
+        const options = select.querySelectorAll('option[data-custom="true"]');
+        options.forEach(opt => opt.remove());
         
-        models.forEach(model => {
+        // Agregar modelos personalizados
+        customModels.forEach(model => {
             const option = document.createElement('option');
-            option.value = model.id;
+            option.value = `custom_${model.id}`;
             option.textContent = model.name;
+            option.setAttribute('data-custom', 'true');
             select.appendChild(option);
         });
     }
 
+    // Renderizar lista de modelos personalizados
     function renderCustomModels() {
         const container = document.getElementById('custom-models-list');
         container.innerHTML = '';
-        
-        const customModels = models.filter(m => m.is_custom);
         
         if (customModels.length > 0) {
             const titleDiv = document.createElement('div');
@@ -474,7 +456,7 @@
             div.className = 'custom-model-item';
             div.innerHTML = `
                 <span><strong>${model.name}</strong></span>
-                <button class="btn-remove-model" onclick="removeCustomModel('${model.id}')">
+                <button class="btn-remove-model" onclick="removeCustomModel(${model.id})">
                     <i data-lucide="trash-2" size="14"></i> Eliminar
                 </button>
             `;
@@ -483,183 +465,58 @@
         lucide.createIcons();
     }
 
-    document.getElementById('btn-add-model').onclick = async () => {
+    // Agregar nuevo modelo personalizado
+    document.getElementById('btn-add-model').onclick = () => {
         const name = document.getElementById('new-model-name').value.trim();
         const url = document.getElementById('new-model-url').value.trim();
-        const api_key = document.getElementById('new-model-apikey').value.trim();
+        const apikey = document.getElementById('new-model-apikey').value.trim();
         
-        if (!name || !url || !api_key) {
+        if (!name || !url || !apikey) {
             alert('Por favor completa todos los campos del nuevo modelo');
             return;
         }
 
-        const btn = document.getElementById('btn-add-model');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="loading"></div> Agregando...';
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/models`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, url, api_key })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                document.getElementById('new-model-name').value = '';
-                document.getElementById('new-model-url').value = '';
-                document.getElementById('new-model-apikey').value = '';
-                await loadModels();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        } catch (err) {
-            alert('Error al agregar modelo: ' + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="plus"></i> Agregar Modelo de IA';
-            lucide.createIcons();
-        }
-    };
-
-    window.removeCustomModel = async function(id) {
-        if (!confirm('¿Estás seguro de eliminar este modelo de IA?')) return;
-        
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/models/${id}`, {
-                method: 'DELETE'
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                await loadModels();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        } catch (err) {
-            alert('Error al eliminar modelo: ' + err.message);
-        }
-    };
-
-    // ====================================
-    // PERSONAJES
-    // ====================================
-    async function loadPersonajes() {
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/personajes`);
-            const data = await response.json();
-            if (data.success) {
-                personajes = data.personajes;
-                renderBots();
-            }
-        } catch (err) {
-            console.error('Error cargando personajes:', err);
-        }
-    }
-
-    function renderBots() {
-        const container = document.getElementById('bot-list-container');
-        container.innerHTML = personajes.length === 0 ? 
-            '<p style="text-align:center;color:#64748b;margin-top:20px;">No hay personajes aún.</p>' : '';
-        
-        personajes.forEach(bot => {
-            const el = document.createElement('div');
-            el.className = 'bot-item';
-            const imgSrc = bot.image_url || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-            el.innerHTML = `
-                <img src="${imgSrc}" class="bot-img-mini">
-                <div class="bot-info-mini">
-                    <h4>${bot.name}</h4>
-                    <span class="online-tag"><span class="online-dot"></span> Online</span>
-                </div>
-                <button class="btn-delete" onclick="deleteBot(event, '${bot.id}')"><i data-lucide="trash-2" size="16"></i></button>
-            `;
-            el.onclick = () => openChat(bot);
-            container.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    document.getElementById('btn-save').onclick = async () => {
-        const name = document.getElementById('ai-name').value.trim();
-        if(!name) {
-            alert('Por favor ingresa un nombre para el personaje');
-            return;
-        }
-
-        const btn = document.getElementById('btn-save');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="loading"></div> Creando...';
-
-        const personajeData = {
+        const newModel = {
+            id: Date.now(),
             name: name,
-            persona: document.getElementById('ai-persona').value,
-            model_id: document.getElementById('ai-model').value,
-            voice: document.getElementById('voice-select').value,
-            rate: document.getElementById('voice-rate').value,
-            pitch: document.getElementById('voice-pitch').value,
-            image_base64: tempImage || null
+            url: url,
+            apikey: apikey
         };
 
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/personajes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(personajeData)
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Reset campos
-                document.getElementById('ai-name').value = "";
-                document.getElementById('ai-persona').value = "";
-                document.getElementById('test-text').value = "";
-                document.getElementById('avatar-preview').style.display = 'none';
-                document.getElementById('preview-placeholder').style.display = 'block';
-                tempImage = "";
-                lastAudioBlob = null;
-
-                await loadPersonajes();
-                switchView('view-list');
-            } else {
-                alert('Error: ' + data.error);
-            }
-        } catch (err) {
-            alert('Error al crear personaje: ' + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="check-circle"></i> Crear';
-            lucide.createIcons();
-        }
-    };
-
-    window.deleteBot = async function(e, id) {
-        e.stopPropagation();
-        if (!confirm('¿Estás seguro de eliminar este personaje?')) return;
+        customModels.push(newModel);
+        localStorage.setItem('custom_ia_models', JSON.stringify(customModels));
         
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/personajes/${id}`, {
-                method: 'DELETE'
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                await loadPersonajes();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        } catch (err) {
-            alert('Error al eliminar personaje: ' + err.message);
+        // Limpiar campos
+        document.getElementById('new-model-name').value = '';
+        document.getElementById('new-model-url').value = '';
+        document.getElementById('new-model-apikey').value = '';
+        
+        loadCustomModelsToSelect();
+        renderCustomModels();
+    };
+
+    // Eliminar modelo personalizado
+    window.removeCustomModel = function(id) {
+        if (confirm('¿Estás seguro de eliminar este modelo de IA?')) {
+            customModels = customModels.filter(m => m.id !== id);
+            localStorage.setItem('custom_ia_models', JSON.stringify(customModels));
+            loadCustomModelsToSelect();
+            renderCustomModels();
         }
     };
 
-    // ====================================
-    // VISTA PREVIA DE IMAGEN
-    // ====================================
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        if(viewId === 'view-config') document.querySelectorAll('.nav-item')[0].classList.add('active');
+        if(viewId === 'view-list') {
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+            renderBots();
+        }
+    }
+
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -675,9 +532,7 @@
         }
     }
 
-    // ====================================
-    // AUDIO / TTS
-    // ====================================
+    // Función hablar - solo con velocidad y tono
     async function hablar(texto, params = null, storeBlob = false) {
         if (!texto) return;
         
@@ -714,9 +569,7 @@
 
             const audio = new Audio(URL.createObjectURL(blob));
             await audio.play();
-        } catch (err) { 
-            console.error("Error Piper:", err); 
-        }
+        } catch (err) { console.error("Error Piper:", err); }
     }
 
     document.getElementById('btn-test').onclick = () => {
@@ -740,26 +593,72 @@
         document.body.removeChild(a);
     };
 
-    // ====================================
-    // NAVEGACIÓN
-    // ====================================
-    function switchView(viewId) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
+    document.getElementById('btn-save').onclick = () => {
+        const name = document.getElementById('ai-name').value;
+        if(!name) {
+            alert('Por favor ingresa un nombre para el personaje');
+            return;
+        }
+
+        const botData = {
+            id: Date.now(),
+            name: name,
+            persona: document.getElementById('ai-persona').value,
+            model: document.getElementById('ai-model').value,
+            voice: document.getElementById('voice-select').value,
+            rate: document.getElementById('voice-rate').value,
+            pitch: document.getElementById('voice-pitch').value,
+            image: tempImage || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"
+        };
+
+        bots.push(botData);
+        localStorage.setItem('mis_bots_piper_v3', JSON.stringify(bots));
         
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        if(viewId === 'view-config') document.querySelectorAll('.nav-item')[0].classList.add('active');
-        if(viewId === 'view-list') document.querySelectorAll('.nav-item')[1].classList.add('active');
+        // Reset campos
+        document.getElementById('ai-name').value = "";
+        document.getElementById('ai-persona').value = "";
+        document.getElementById('test-text').value = "";
+        document.getElementById('avatar-preview').style.display = 'none';
+        document.getElementById('preview-placeholder').style.display = 'block';
+        tempImage = "";
+        lastAudioBlob = null;
+
+        switchView('view-list');
+    };
+
+    function renderBots() {
+        bots = JSON.parse(localStorage.getItem('mis_bots_piper_v3') || '[]');
+        const container = document.getElementById('bot-list-container');
+        container.innerHTML = bots.length === 0 ? '<p style="text-align:center;color:#64748b;margin-top:20px;">No hay personajes aún.</p>' : '';
+        
+        bots.forEach(bot => {
+            const el = document.createElement('div');
+            el.className = 'bot-item';
+            el.innerHTML = `
+                <img src="${bot.image}" class="bot-img-mini">
+                <div class="bot-info-mini">
+                    <h4>${bot.name}</h4>
+                    <span class="online-tag"><span class="online-dot"></span> Online</span>
+                </div>
+                <button class="btn-delete" onclick="deleteBot(event, ${bot.id})"><i data-lucide="trash-2" size="16"></i></button>
+            `;
+            el.onclick = () => openChat(bot);
+            container.appendChild(el);
+        });
+        lucide.createIcons();
     }
 
-    // ====================================
-    // CHAT
-    // ====================================
+    function deleteBot(e, id) {
+        e.stopPropagation();
+        bots = bots.filter(b => b.id !== id);
+        localStorage.setItem('mis_bots_piper_v3', JSON.stringify(bots));
+        renderBots();
+    }
+
     function openChat(bot) {
         currentBot = bot;
         document.getElementById('display-name').innerText = bot.name;
-        const imgSrc = bot.image_url || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-        document.getElementById('chat-avatar').src = imgSrc;
+        document.getElementById('chat-avatar').src = bot.image;
         document.getElementById('messages').innerHTML = "";
         switchView('view-chat');
     }
@@ -770,51 +669,92 @@
         if (!texto || !currentBot) return;
 
         const dUser = document.createElement('div');
-        dUser.className = 'msg user-msg'; 
-        dUser.innerText = texto;
+        dUser.className = 'msg user-msg'; dUser.innerText = texto;
         document.getElementById('messages').appendChild(dUser);
         input.value = "";
 
         const dIA = document.createElement('div');
-        dIA.className = 'msg ia-msg'; 
-        dIA.innerText = "...";
+        dIA.className = 'msg ia-msg'; dIA.innerText = "...";
         document.getElementById('messages').appendChild(dIA);
         document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 
         try {
+            let resTxt = "";
             const sys = `Eres ${currentBot.name}. Tu personalidad: ${currentBot.persona}. Responde conciso.`;
-            
-            const response = await fetch(`${BACKEND_URL}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model_id: currentBot.model_id,
-                    message: texto,
-                    system_prompt: sys
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                dIA.innerText = data.response;
-                await hablar(data.response, {
-                    voice: currentBot.voice,
-                    rate: currentBot.rate,
-                    pitch: currentBot.pitch
+
+            // Verificar si es modelo personalizado
+            if (currentBot.model.startsWith('custom_')) {
+                const modelId = parseInt(currentBot.model.replace('custom_', ''));
+                const customModel = customModels.find(m => m.id === modelId);
+                
+                if (customModel) {
+                    const r = await fetch(customModel.url, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': `Bearer ${customModel.apikey}`
+                        },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: sys }, 
+                                { role: 'user', content: texto }
+                            ],
+                            max_tokens: 150
+                        })
+                    });
+                    const d = await r.json();
+                    resTxt = d.choices?.[0]?.message?.content || "Error en modelo personalizado.";
+                }
+            } else if (currentBot.model === 'deepseek') {
+                const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${OPENROUTER_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek/deepseek-chat',
+                        messages: [{ role: 'system', content: sys }, { role: 'user', content: texto }]
+                    })
                 });
+                const d = await r.json();
+                resTxt = d.choices[0].message.content;
+            } else if (currentBot.model === 'groq') {
+                const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [{ role: 'system', content: sys }, { role: 'user', content: texto }],
+                        max_tokens: 150
+                    })
+                });
+                const d = await r.json();
+                resTxt = d.choices[0].message.content;
             } else {
-                dIA.innerText = "Error: " + data.error;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const r = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `${sys} Usuario: ${texto}` }] }] })
+                });
+                const d = await r.json();
+                resTxt = d.candidates?.[0]?.content?.parts?.[0]?.text || "Error Gemini.";
             }
-        } catch (e) { 
-            dIA.innerText = "Error: " + e.message; 
-        }
+            dIA.innerText = resTxt;
+            await hablar(resTxt, currentBot);
+        } catch (e) { dIA.innerText = "Error: " + e.message; }
         document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
     }
 
     document.getElementById('btn-enviar').onclick = enviar;
-    document.getElementById('user-input').onkeypress = (e) => { 
-        if(e.key === 'Enter') enviar(); 
+    document.getElementById('user-input').onkeypress = (e) => { if(e.key === 'Enter') enviar(); };
+    
+    window.onload = () => {
+        customModels = JSON.parse(localStorage.getItem('custom_ia_models') || '[]');
+        loadCustomModelsToSelect();
+        renderCustomModels();
+        if(bots.length > 0) switchView('view-list');
     };
 </script>
 
