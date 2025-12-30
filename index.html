@@ -511,6 +511,8 @@
         } else if(viewId === 'view-list') {
             document.querySelectorAll('.nav-item')[1].classList.add('active');
         }
+        
+        lucide.createIcons();
     }
 
     function showLoading() {
@@ -567,17 +569,17 @@
             const data = await response.json();
             
             if (data.success) {
-                alert('Modelo registrado exitosamente');
+                alert('✅ Modelo registrado exitosamente');
                 nameInput.value = '';
                 urlInput.value = '';
                 keyInput.value = '';
                 await cargarModelos();
             } else {
-                alert('Error al registrar modelo: ' + (data.error || 'Desconocido'));
+                alert('❌ Error al registrar modelo: ' + (data.error || 'Desconocido'));
             }
         } catch (error) {
             console.error('Error registrando modelo:', error);
-            alert('Error al registrar modelo. Verifica tu conexión.');
+            alert('❌ Error al registrar modelo. Verifica tu conexión.');
         } finally {
             hideLoading();
         }
@@ -652,12 +654,13 @@
                     selectedModelId = defaultModels[0].id;
                 }
                 await cargarModelos();
+                alert('✅ Modelo eliminado exitosamente');
             } else {
-                alert('Error al eliminar modelo');
+                alert('❌ Error al eliminar modelo');
             }
         } catch (error) {
             console.error('Error eliminando modelo:', error);
-            alert('Error al eliminar modelo');
+            alert('❌ Error al eliminar modelo');
         } finally {
             hideLoading();
         }
@@ -666,9 +669,9 @@
     // ==================== PERSONAJES ====================
     document.getElementById('btn-save').onclick = async () => {
         const name = document.getElementById('ai-name').value.trim();
-        if(!name) return alert("Ponle nombre al personaje");
+        if(!name) return alert("❌ Ponle nombre al personaje");
         
-        if(!selectedModelId) return alert("Selecciona un modelo");
+        if(!selectedModelId) return alert("❌ Selecciona un modelo");
 
         try {
             showLoading();
@@ -679,7 +682,6 @@
                     name: name,
                     persona: document.getElementById('ai-persona').value,
                     model_id: selectedModelId,
-                    model_name: selectedModelId,
                     voice: document.getElementById('voice-select').value,
                     rate: document.getElementById('voice-rate').value,
                     pitch: document.getElementById('voice-pitch').value,
@@ -690,7 +692,7 @@
             const data = await response.json();
             
             if (data.success) {
-                alert('Personaje guardado exitosamente');
+                alert('✅ Personaje guardado exitosamente');
                 document.getElementById('ai-name').value = '';
                 document.getElementById('ai-persona').value = '';
                 tempImage = '';
@@ -698,5 +700,209 @@
                 document.getElementById('preview-placeholder').style.display = 'block';
                 switchView('view-list');
             } else {
-                alert('Error al guardar personaje: ' + (data
+                alert('❌ Error al guardar personaje: ' + (data.error || 'Desconocido'));
+            }
+        } catch (error) {
+            console.error('Error guardando personaje:', error);
+            alert('❌ Error al guardar personaje. Verifica tu conexión.');
+        } finally {
+            hideLoading();
+        }
+    };
 
+    function renderBots() {
+        const container = document.getElementById('bot-list-container');
+        container.innerHTML = '';
+        
+        if (bots.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
+            return;
+        }
+        
+        bots.forEach(bot => {
+            const el = document.createElement('div');
+            el.className = 'bot-item';
+            
+            const imgSrc = bot.image_base64 || bot.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
+            
+            el.innerHTML = `
+                <div class="bot-item-left" onclick="openChat(${bot.id})">
+                    <img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
+                    <div class="bot-info-mini">
+                        <h4>${bot.name}</h4>
+                        <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
+                    </div>
+                </div>
+                <button class="btn-delete" onclick="deleteBot(event, ${bot.id})">
+                    <i data-lucide="trash-2" size="18"></i>
+                </button>
+            `;
+            container.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    async function deleteBot(e, id) {
+        e.stopPropagation();
+        if (!confirm('¿Eliminar este personaje?')) return;
+
+        try {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/personajes/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                await cargarPersonajes();
+                alert('✅ Personaje eliminado exitosamente');
+            } else {
+                alert('❌ Error al eliminar personaje');
+            }
+        } catch (error) {
+            console.error('Error eliminando personaje:', error);
+            alert('❌ Error al eliminar personaje');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function openChat(botId) {
+        currentBot = bots.find(b => b.id === botId);
+        if (!currentBot) return;
+        
+        const imgSrc = currentBot.image_base64 || currentBot.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
+        
+        document.getElementById('display-name').innerText = currentBot.name;
+        document.getElementById('chat-avatar').src = imgSrc;
+        document.getElementById('messages').innerHTML = "";
+        switchView('view-chat');
+    }
+
+    // ==================== VOZ ====================
+    async function hablar(texto, params = null) {
+        if (!texto) return;
+        const voiceModel = params?.voice || document.getElementById('voice-select').value;
+        const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
+        const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
+        
+        try {
+            const response = await fetch(PIPER_SERVER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    text: texto, 
+                    model: voiceModel, 
+                    length_scale: 1 / rate, 
+                    noise_scale: pitch
+                })
+            });
+            const data = await response.json();
+            const audioData = atob(data.audio);
+            const arrayBuffer = new Uint8Array(audioData.length);
+            for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
+            
+            lastAudioBlob = new Blob([arrayBuffer], { type: 'audio/wav' });
+            const audio = new Audio(URL.createObjectURL(lastAudioBlob));
+            await audio.play();
+        } catch (err) { 
+            console.error("Error Piper:", err); 
+            alert('❌ Error al generar audio');
+        }
+    }
+
+    function descargarWav() {
+        if (!lastAudioBlob) return alert("⚠️ Primero genera un audio probando la voz");
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(lastAudioBlob);
+        a.download = `piper_audio_${Date.now()}.wav`;
+        a.click();
+    }
+
+    document.getElementById('btn-test').onclick = () => {
+        const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
+        hablar(texto);
+    };
+
+    // ==================== CHAT ====================
+    async function enviar() {
+        const input = document.getElementById('user-input');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        const messagesContainer = document.getElementById('messages');
+        const userDiv = document.createElement('div');
+        userDiv.className = 'msg user-msg'; 
+        userDiv.innerText = texto;
+        messagesContainer.appendChild(userDiv);
+        input.value = "";
+
+        const iaDiv = document.createElement('div');
+        iaDiv.className = 'msg ia-msg'; 
+        iaDiv.innerText = "⏳ Pensando...";
+        messagesContainer.appendChild(iaDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try {
+            // Obtener configuración del modelo
+            const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
+            
+            if (!modelConfig) {
+                throw new Error("Modelo no encontrado");
+            }
+
+            const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural y conversacional.`;
+
+            const response = await fetch(`${BACKEND_URL}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model_id: currentBot.model_id,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: texto }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const resTxt = data.response;
+                iaDiv.innerText = resTxt;
+                
+                // Hablar con la voz configurada del bot
+                hablar(resTxt, {
+                    voice: currentBot.voice,
+                    rate: currentBot.rate,
+                    pitch: currentBot.pitch
+                });
+            } else {
+                iaDiv.innerText = "❌ Error: " + (data.error || 'Error desconocido');
+            }
+        } catch (e) { 
+            iaDiv.innerText = "❌ Error: " + e.message; 
+            console.error('Error en chat:', e);
+        }
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    document.getElementById('btn-enviar').onclick = enviar;
+    document.getElementById('user-input').onkeypress = (e) => { 
+        if(e.key === 'Enter') enviar(); 
+    };
+    
+    // ==================== INICIALIZACIÓN ====================
+    window.onload = async () => { 
+        lucide.createIcons();
+        await cargarModelos();
+        await cargarPersonajes();
+        
+        if(bots.length > 0) {
+            switchView('view-list'); 
+        }
+    };
+</script>
+</body>
+</html>
