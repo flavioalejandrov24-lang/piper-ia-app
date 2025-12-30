@@ -454,7 +454,7 @@
     lucide.createIcons();
 
     // ==================== FUNCIONES DE CARGA ====================
-   async function cargarModelos() {
+  async function cargarModelos() {
     try {
         showLoading();
         const response = await fetch(`${BACKEND_URL}/api/models`);
@@ -464,19 +464,8 @@
             defaultModels = data.models.filter(m => !m.is_custom);
             customModels = data.models.filter(m => m.is_custom);
             
-            // ✅ VALIDAR que el modelo seleccionado existe
-            const allModels = [...defaultModels, ...customModels];
-            
-            if (allModels.length > 0) {
-                const existeModeloSeleccionado = allModels.find(m => m.id === selectedModelId);
-                
-                if (!existeModeloSeleccionado || !selectedModelId) {
-                    selectedModelId = allModels[0].id;
-                    console.log('✅ Modelo auto-seleccionado:', selectedModelId);
-                }
-            } else {
-                selectedModelId = null;
-                console.warn('⚠️ No hay modelos disponibles');
+            if (defaultModels.length > 0 && !selectedModelId) {
+                selectedModelId = defaultModels[0].id;
             }
             
             renderModelCheckboxes();
@@ -688,13 +677,23 @@ async function eliminarModelo(id) {
 
     // ==================== PERSONAJES ====================
     document.getElementById('btn-save').onclick = async () => {
-        const name = document.getElementById('ai-name').value.trim();
-        if(!name) return alert("❌ Ponle nombre al personaje");
-        
-        if(!selectedModelId) return alert("❌ Selecciona un modelo");
+    const name = document.getElementById('ai-name').value.trim();
+    if(!name) return alert("❌ Ponle nombre al personaje");
+    
+    if(!selectedModelId) return alert("❌ Selecciona un modelo");
 
-        try {
-            showLoading();
+    // ✅ AGREGA ESTA VALIDACIÓN:
+    const allModels = [...defaultModels, ...customModels];
+    const modeloExiste = allModels.find(m => m.id === selectedModelId);
+    
+    if (!modeloExiste) {
+        alert('❌ El modelo seleccionado ya no existe. Recargando...');
+        await cargarModelos();
+        return;
+    }
+
+    try {
+        showLoading();
             const response = await fetch(`${BACKEND_URL}/api/personajes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -876,6 +875,47 @@ function openChat(botId) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
     try {
+        // ✅ VALIDAR que el modelo existe
+        const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
+        
+        if (!modelConfig) {
+            throw new Error("⚠️ El modelo de este personaje ya no existe. Por favor, edítalo y asigna otro modelo.");
+        }
+
+        const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural y conversacional.`;
+
+        const response = await fetch(`${BACKEND_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model_id: currentBot.model_id,
+                message: texto,
+                system_prompt: systemPrompt
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const resTxt = data.response;
+            iaDiv.innerText = resTxt;
+            
+            hablar(resTxt, {
+                voice: currentBot.voice,
+                rate: currentBot.rate,
+                pitch: currentBot.pitch
+            });
+        } else {
+            iaDiv.innerText = "❌ Error: " + (data.error || 'Error desconocido');
+        }
+    } catch (e) { 
+        iaDiv.innerText = "❌ Error: " + e.message; 
+        console.error('Error en chat:', e);
+    }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+    try {
         // Obtener configuración del modelo
         const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
         
@@ -935,6 +975,7 @@ function openChat(botId) {
 </script>
 </body>
 </html>
+
 
 
 
