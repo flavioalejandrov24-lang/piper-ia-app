@@ -1,3 +1,7 @@
+Contenido pegado
+34.41 KB •943 líneas
+•
+El formato puede ser inconsistente con la fuente
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -454,7 +458,7 @@
     lucide.createIcons();
 
     // ==================== FUNCIONES DE CARGA ====================
-  async function cargarModelos() {
+   async function cargarModelos() {
     try {
         showLoading();
         const response = await fetch(`${BACKEND_URL}/api/models`);
@@ -464,8 +468,19 @@
             defaultModels = data.models.filter(m => !m.is_custom);
             customModels = data.models.filter(m => m.is_custom);
             
-            if (defaultModels.length > 0 && !selectedModelId) {
-                selectedModelId = defaultModels[0].id;
+            // ✅ VALIDAR que el modelo seleccionado existe
+            const allModels = [...defaultModels, ...customModels];
+            
+            if (allModels.length > 0) {
+                const existeModeloSeleccionado = allModels.find(m => m.id === selectedModelId);
+                
+                if (!existeModeloSeleccionado || !selectedModelId) {
+                    selectedModelId = allModels[0].id;
+                    console.log('✅ Modelo auto-seleccionado:', selectedModelId);
+                }
+            } else {
+                selectedModelId = null;
+                console.warn('⚠️ No hay modelos disponibles');
             }
             
             renderModelCheckboxes();
@@ -676,59 +691,48 @@ async function eliminarModelo(id) {
 }
 
     // ==================== PERSONAJES ====================
- document.getElementById('btn-save').onclick = async () => {
-    const name = document.getElementById('ai-name').value.trim();
-    if(!name) return alert("❌ Ponle nombre al personaje");
-    
-    if(!selectedModelId) return alert("❌ Selecciona un modelo");
-
-    // ✅ VALIDAR que el modelo existe
-    const allModels = [...defaultModels, ...customModels];
-    const modeloExiste = allModels.find(m => m.id === selectedModelId);
-    
-    if (!modeloExiste) {
-        alert('❌ El modelo seleccionado ya no existe. Recargando modelos...');
-        await cargarModelos();
-        return;
-    }
-
-    try {
-        showLoading();
-        const response = await fetch(`${BACKEND_URL}/api/personajes`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: name,
-                persona: document.getElementById('ai-persona').value,
-                model_id: selectedModelId,
-                voice: document.getElementById('voice-select').value,
-                rate: document.getElementById('voice-rate').value,
-                pitch: document.getElementById('voice-pitch').value,
-                image_base64: tempImage || null
-            })
-        });
-
-        const data = await response.json();
+    document.getElementById('btn-save').onclick = async () => {
+        const name = document.getElementById('ai-name').value.trim();
+        if(!name) return alert("❌ Ponle nombre al personaje");
         
-        if (data.success) {
-            alert('✅ Personaje guardado exitosamente');
-            document.getElementById('ai-name').value = '';
-            document.getElementById('ai-persona').value = '';
-            tempImage = '';
-            document.getElementById('avatar-preview').style.display = 'none';
-            document.getElementById('preview-placeholder').style.display = 'block';
-            switchView('view-list');
-        } else {
-            alert('❌ Error al guardar personaje: ' + (data.error || 'Desconocido'));
-        }
-    } catch (error) {
-        console.error('Error guardando personaje:', error);
-        alert('❌ Error al guardar personaje. Verifica tu conexión.');
-    } finally {
-        hideLoading();
-    }
-};
+        if(!selectedModelId) return alert("❌ Selecciona un modelo");
 
+        try {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/personajes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    persona: document.getElementById('ai-persona').value,
+                    model_id: selectedModelId,
+                    voice: document.getElementById('voice-select').value,
+                    rate: document.getElementById('voice-rate').value,
+                    pitch: document.getElementById('voice-pitch').value,
+                    image_base64: tempImage || null
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('✅ Personaje guardado exitosamente');
+                document.getElementById('ai-name').value = '';
+                document.getElementById('ai-persona').value = '';
+                tempImage = '';
+                document.getElementById('avatar-preview').style.display = 'none';
+                document.getElementById('preview-placeholder').style.display = 'block';
+                switchView('view-list');
+            } else {
+                alert('❌ Error al guardar personaje: ' + (data.error || 'Desconocido'));
+            }
+        } catch (error) {
+            console.error('Error guardando personaje:', error);
+            alert('❌ Error al guardar personaje. Verifica tu conexión.');
+        } finally {
+            hideLoading();
+        }
+    };
 
   function renderBots() {
     const container = document.getElementById('bot-list-container');
@@ -876,47 +880,6 @@ function openChat(botId) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
     try {
-        // ✅ VALIDAR que el modelo existe
-        const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
-        
-        if (!modelConfig) {
-            throw new Error("⚠️ El modelo de este personaje ya no existe. Por favor, edítalo y asigna otro modelo.");
-        }
-
-        const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural y conversacional.`;
-
-        const response = await fetch(`${BACKEND_URL}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model_id: currentBot.model_id,
-                message: texto,
-                system_prompt: systemPrompt
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            const resTxt = data.response;
-            iaDiv.innerText = resTxt;
-            
-            hablar(resTxt, {
-                voice: currentBot.voice,
-                rate: currentBot.rate,
-                pitch: currentBot.pitch
-            });
-        } else {
-            iaDiv.innerText = "❌ Error: " + (data.error || 'Error desconocido');
-        }
-    } catch (e) { 
-        iaDiv.innerText = "❌ Error: " + e.message; 
-        console.error('Error en chat:', e);
-    }
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-    try {
         // Obtener configuración del modelo
         const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
         
@@ -962,45 +925,17 @@ function openChat(botId) {
     document.getElementById('user-input').onkeypress = (e) => { 
         if(e.key === 'Enter') enviar(); 
     };
- // ==================== FUNCIÓN DE PREVISUALIZACIÓN (FALTANTE) ====================
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('avatar-preview');
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                document.getElementById('preview-placeholder').style.display = 'none';
-                tempImage = e.target.result; // Guarda la imagen para el envío
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    // ==================== INICIALIZACIÓN CORREGIDA ====================
-    async function iniciarApp() {
+    
+    // ==================== INICIALIZACIÓN ====================
+    window.onload = async () => { 
         lucide.createIcons();
         await cargarModelos();
         await cargarPersonajes();
         
-        if (bots && bots.length > 0) {
+        if(bots.length > 0) {
             switchView('view-list'); 
         }
-    }
-
-    // Llamamos a la función sin usar await fuera de ella
-    window.onload = iniciarApp;
-
-    // Asignar los eventos de botones
-    document.getElementById('btn-enviar').onclick = enviar;
-    document.getElementById('user-input').onkeypress = (e) => { 
-        if(e.key === 'Enter') enviar(); 
     };
-
-
-
-
-
-
-
-
+</script>
+</body>
+</html>
