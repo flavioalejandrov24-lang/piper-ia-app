@@ -962,20 +962,40 @@ function openChat(botId) {
     document.getElementById('user-input').onkeypress = (e) => { 
         if(e.key === 'Enter') enviar(); 
     };
-    
-    // ==================== INICIALIZACIÓN ====================
-    window.onload = async () => { 
+ // ==================== FUNCIÓN DE PREVISUALIZACIÓN (FALTANTE) ====================
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('avatar-preview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('preview-placeholder').style.display = 'none';
+                tempImage = e.target.result; // Guarda la imagen para el envío
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // ==================== INICIALIZACIÓN CORREGIDA ====================
+    async function iniciarApp() {
         lucide.createIcons();
         await cargarModelos();
         await cargarPersonajes();
         
-        if(bots.length > 0) {
+        if (bots && bots.length > 0) {
             switchView('view-list'); 
         }
+    }
+
+    // Llamamos a la función sin usar await fuera de ella
+    window.onload = iniciarApp;
+
+    // Asignar los eventos de botones
+    document.getElementById('btn-enviar').onclick = enviar;
+    document.getElementById('user-input').onkeypress = (e) => { 
+        if(e.key === 'Enter') enviar(); 
     };
-</script>
-</body>
-</html>
 
 
 
