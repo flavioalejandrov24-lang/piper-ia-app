@@ -160,6 +160,7 @@
         .btn-secondary { background: #e9d5ff; color: #9333ea; border: 1px solid #d8b4fe; }
         .btn-secondary:hover { background: #ddd6fe; }
         .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #avatar-preview-container { 
             width: 110px; height: 110px; margin: 0 auto 15px; 
@@ -250,9 +251,33 @@
           font-weight: bold;
         }
         .nav-item.active { color: var(--primary); }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .loading-overlay.show { display: flex; }
+        .spinner { 
+            width: 50px; height: 50px; 
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+
+<div class="loading-overlay" id="loading-overlay">
+    <div class="spinner"></div>
+</div>
 
 <div class="app-container">
 
@@ -413,37 +438,90 @@
 </div>
 
 <script>
-    const QWEN_KEY = "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";
-    const OPENROUTER_API_KEY = "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";
-    const GEMINI_API_KEY = "AIzaSyDrnrPGrejdEJfdGeYyHdN_Sm_C0d9yh-0";
-    const GROQ_API_KEY = "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";
+    // ==================== CONFIGURACIÓN ====================
+    const BACKEND_URL = "https://piper-backend-blond.vercel.app";
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
-    // Convertimos defaultModels a una lista mutable para poder "eliminarlos" de la vista si se desea
-    let defaultModels = [
-        { id: 'qwen', name: 'Qwen 2.5 VL (Free)', isDefault: true },
-        { id: 'deepseek', name: 'DeepSeek V3 (OpenRouter)', isDefault: true },
-        { id: 'groq', name: 'Groq (Llama 3.3)', isDefault: true },
-        { id: 'gemini', name: 'Google Gemini 1.5 Flash', isDefault: true }
-    ];
-
-    let bots = JSON.parse(localStorage.getItem('mis_bots_piper_v9') || '[]');
-    let customModels = JSON.parse(localStorage.getItem('custom_ia_models_v9') || '[]');
-    let deletedDefaultIds = JSON.parse(localStorage.getItem('deleted_defaults_v9') || '[]');
-    
-    let selectedModelId = 'qwen'; 
+    // ==================== VARIABLES GLOBALES ====================
+    let defaultModels = [];
+    let customModels = [];
+    let bots = [];
+    let selectedModelId = null;
     let currentBot = null;
     let tempImage = "";
     let lastAudioBlob = null;
 
     lucide.createIcons();
 
+    // ==================== FUNCIONES DE CARGA ====================
+    async function cargarModelos() {
+        try {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/models`);
+            const data = await response.json();
+            
+            if (data.success) {
+                defaultModels = data.models.filter(m => !m.is_custom);
+                customModels = data.models.filter(m => m.is_custom);
+                
+                if (defaultModels.length > 0 && !selectedModelId) {
+                    selectedModelId = defaultModels[0].id;
+                }
+                
+                renderModelCheckboxes();
+            }
+        } catch (error) {
+            console.error('Error cargando modelos:', error);
+            alert('Error al cargar modelos. Verifica tu conexión.');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function cargarPersonajes() {
+        try {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/personajes`);
+            const data = await response.json();
+            
+            if (data.success) {
+                bots = data.personajes;
+                renderBots();
+            }
+        } catch (error) {
+            console.error('Error cargando personajes:', error);
+            alert('Error al cargar personajes. Verifica tu conexión.');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // ==================== FUNCIONES DE VISTAS ====================
     function switchView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById(viewId).classList.add('active');
-        if(viewId === 'view-list') renderBots();
+        
+        if(viewId === 'view-list') {
+            cargarPersonajes();
+        }
+        
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        if(viewId === 'view-config') {
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+        } else if(viewId === 'view-list') {
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+        }
     }
 
+    function showLoading() {
+        document.getElementById('loading-overlay').classList.add('show');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading-overlay').classList.remove('show');
+    }
+
+    // ==================== IMAGEN ====================
     function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -458,45 +536,63 @@
         }
     }
 
-    function registrarNuevoModelo() {
+    // ==================== MODELOS ====================
+    async function registrarNuevoModelo() {
         const nameInput = document.getElementById('new-model-name');
         const urlInput = document.getElementById('new-model-url');
         const keyInput = document.getElementById('new-model-apikey');
 
         const name = nameInput.value.trim();
         const url = urlInput.value.trim();
-        const key = keyInput.value.trim();
+        const apiKey = keyInput.value.trim();
         
-        if (!name || !url || !key) {
+        if (!name || !url || !apiKey) {
             alert('Por favor, completa Nombre, URL y API Key.');
             return;
         }
 
-        const newModel = { 
-            id: 'custom_' + Date.now(), 
-            name: name, 
-            url: url, 
-            apikey: key,
-            isDefault: false
-        };
+        try {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/models`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    url: url,
+                    api_key: apiKey,
+                    is_custom: true
+                })
+            });
 
-        customModels.push(newModel);
-        localStorage.setItem('custom_ia_models_v9', JSON.stringify(customModels));
-        
-        nameInput.value = '';
-        urlInput.value = '';
-        keyInput.value = '';
-        
-        renderModelCheckboxes();
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('Modelo registrado exitosamente');
+                nameInput.value = '';
+                urlInput.value = '';
+                keyInput.value = '';
+                await cargarModelos();
+            } else {
+                alert('Error al registrar modelo: ' + (data.error || 'Desconocido'));
+            }
+        } catch (error) {
+            console.error('Error registrando modelo:', error);
+            alert('Error al registrar modelo. Verifica tu conexión.');
+        } finally {
+            hideLoading();
+        }
     }
 
     function renderModelCheckboxes() {
         const container = document.getElementById('model-checkbox-container');
         container.innerHTML = '';
         
-        // Filtramos los modelos por defecto que el usuario "eliminó"
-        const activeDefaults = defaultModels.filter(m => !deletedDefaultIds.includes(m.id));
-        const allModels = [...activeDefaults, ...customModels];
+        const allModels = [...defaultModels, ...customModels];
+        
+        if (allModels.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:10px;">No hay modelos disponibles</p>';
+            return;
+        }
         
         allModels.forEach(m => {
             const item = document.createElement('div');
@@ -519,15 +615,16 @@
             left.appendChild(span);
             item.appendChild(left);
 
-            // BOTÓN DE ELIMINAR PARA TODOS
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn-delete';
-            delBtn.innerHTML = '<i data-lucide="trash-2" size="14"></i>';
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
-                eliminarModelo(m.id, m.isDefault);
-            };
-            item.appendChild(delBtn);
+            if (m.is_custom) {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-delete';
+                delBtn.innerHTML = '<i data-lucide="trash-2" size="14"></i>';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    eliminarModelo(m.id);
+                };
+                item.appendChild(delBtn);
+            }
             
             container.appendChild(item);
         });
@@ -539,186 +636,66 @@
         renderModelCheckboxes();
     }
 
-    function eliminarModelo(id, isDefault) {
-        if (isDefault) {
-            deletedDefaultIds.push(id);
-            localStorage.setItem('deleted_defaults_v9', JSON.stringify(deletedDefaultIds));
-        } else {
-            customModels = customModels.filter(m => m.id !== id);
-            localStorage.setItem('custom_ia_models_v9', JSON.stringify(customModels));
-        }
-        
-        if (selectedModelId === id) {
-            // Revertir a un modelo por defecto si el borrado estaba seleccionado
-            const remaining = defaultModels.find(m => !deletedDefaultIds.includes(m.id));
-            selectedModelId = remaining ? remaining.id : '';
-        }
-        
-        renderModelCheckboxes();
-    }
+    async function eliminarModelo(id) {
+        if (!confirm('¿Eliminar este modelo?')) return;
 
-    document.getElementById('btn-save').onclick = () => {
-        const name = document.getElementById('ai-name').value;
-        if(!name) return alert("Ponle nombre al personaje");
-
-        const botData = {
-            id: Date.now(),
-            name: name,
-            persona: document.getElementById('ai-persona').value,
-            model: selectedModelId,
-            voice: document.getElementById('voice-select').value,
-            rate: document.getElementById('voice-rate').value,
-            pitch: document.getElementById('voice-pitch').value,
-            image: tempImage || "https://api.dicebear.com/7.x/bottts/svg?seed=" + name
-        };
-
-        bots.push(botData);
-        localStorage.setItem('mis_bots_piper_v9', JSON.stringify(bots));
-        switchView('view-list');
-    };
-
-    function renderBots() {
-        const container = document.getElementById('bot-list-container');
-        container.innerHTML = '';
-        bots.forEach(bot => {
-            const el = document.createElement('div');
-            el.className = 'bot-item';
-            el.innerHTML = `
-                <div class="bot-item-left">
-                    <img src="${bot.image}" class="bot-img-mini">
-                    <div class="bot-info-mini">
-                        <h4>${bot.name}</h4>
-                        <span class="online-tag"><span class="online-dot"></span> Online</span>
-                    </div>
-                </div>
-                <button class="btn-delete" onclick="deleteBot(event, ${bot.id})">
-                    <i data-lucide="trash-2" size="18"></i>
-                </button>
-            `;
-            el.onclick = () => openChat(bot);
-            container.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    function deleteBot(e, id) {
-        e.stopPropagation();
-        bots = bots.filter(b => b.id !== id);
-        localStorage.setItem('mis_bots_piper_v9', JSON.stringify(bots));
-        renderBots();
-    }
-
-    function openChat(bot) {
-        currentBot = bot;
-        document.getElementById('display-name').innerText = bot.name;
-        document.getElementById('chat-avatar').src = bot.image;
-        document.getElementById('messages').innerHTML = "";
-        switchView('view-chat');
-    }
-
-    async function hablar(texto, params = null) {
-        if (!texto) return;
-        const voiceModel = params?.voice || document.getElementById('voice-select').value;
-        const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
-        const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
-        
         try {
-            const response = await fetch(PIPER_SERVER, {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/models/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                if (selectedModelId === id && defaultModels.length > 0) {
+                    selectedModelId = defaultModels[0].id;
+                }
+                await cargarModelos();
+            } else {
+                alert('Error al eliminar modelo');
+            }
+        } catch (error) {
+            console.error('Error eliminando modelo:', error);
+            alert('Error al eliminar modelo');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // ==================== PERSONAJES ====================
+    document.getElementById('btn-save').onclick = async () => {
+        const name = document.getElementById('ai-name').value.trim();
+        if(!name) return alert("Ponle nombre al personaje");
+        
+        if(!selectedModelId) return alert("Selecciona un modelo");
+
+        try {
+            showLoading();
+            const response = await fetch(`${BACKEND_URL}/api/personajes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    text: texto, 
-                    model: voiceModel, 
-                    length_scale: 1 / rate, 
-                    noise_scale: pitch
+                body: JSON.stringify({
+                    name: name,
+                    persona: document.getElementById('ai-persona').value,
+                    model_id: selectedModelId,
+                    model_name: selectedModelId,
+                    voice: document.getElementById('voice-select').value,
+                    rate: document.getElementById('voice-rate').value,
+                    pitch: document.getElementById('voice-pitch').value,
+                    image_base64: tempImage || null
                 })
             });
+
             const data = await response.json();
-            const audioData = atob(data.audio);
-            const arrayBuffer = new Uint8Array(audioData.length);
-            for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
             
-            lastAudioBlob = new Blob([arrayBuffer], { type: 'audio/wav' });
-            const audio = new Audio(URL.createObjectURL(lastAudioBlob));
-            await audio.play();
-        } catch (err) { console.error("Error Piper:", err); }
-    }
-
-    function descargarWav() {
-        if (!lastAudioBlob) return alert(" Primero genera un audio probando la voz");
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(lastAudioBlob);
-        a.download = `piper_audio_${Date.now()}.wav`;
-        a.click();
-    }
-
-    document.getElementById('btn-test').onclick = () => hablar(document.getElementById('test-text').value || "Probando la voz de Piper.");
-
-    async function enviar() {
-        const input = document.getElementById('user-input');
-        const texto = input.value.trim();
-        if (!texto) return;
-
-        const messagesContainer = document.getElementById('messages');
-        const userDiv = document.createElement('div');
-        userDiv.className = 'msg user-msg'; userDiv.innerText = texto;
-        messagesContainer.appendChild(userDiv);
-        input.value = "";
-
-        const iaDiv = document.createElement('div');
-        iaDiv.className = 'msg ia-msg'; iaDiv.innerText = "...";
-        messagesContainer.appendChild(iaDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        try {
-            let resTxt = "";
-            let apiURL = "";
-            let apiKey = "";
-            let modelName = "";
-            const sys = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural.`;
-
-            if (currentBot.model.startsWith('custom_')) {
-                const config = customModels.find(x => x.id === currentBot.model);
-                if(!config) throw new Error("Modelo no encontrado");
-                apiURL = config.url;
-                apiKey = config.apikey;
-                modelName = config.name;
+            if (data.success) {
+                alert('Personaje guardado exitosamente');
+                document.getElementById('ai-name').value = '';
+                document.getElementById('ai-persona').value = '';
+                tempImage = '';
+                document.getElementById('avatar-preview').style.display = 'none';
+                document.getElementById('preview-placeholder').style.display = 'block';
+                switchView('view-list');
             } else {
-                modelName = currentBot.model === 'qwen' ? 'qwen/qwen-2.5-vl-7b-instruct:free' : 
-                            currentBot.model === 'deepseek' ? 'deepseek/deepseek-chat' : 
-                            currentBot.model === 'gemini' ? 'google/gemini-flash-1.5' :
-                            'llama-3.3-70b-versatile';
-                apiURL = currentBot.model === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
-                apiKey = currentBot.model === 'qwen' ? QWEN_KEY : 
-                         currentBot.model === 'deepseek' ? OPENROUTER_API_KEY : 
-                         currentBot.model === 'gemini' ? GEMINI_API_KEY :
-                         GROQ_API_KEY;
-            }
-
-            const r = await fetch(apiURL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ 
-                    model: modelName, 
-                    messages: [{role:'system', content:sys}, {role:'user', content:texto}] 
-                })
-            });
-            const d = await r.json();
-            resTxt = d.choices[0].message.content;
-            
-            iaDiv.innerText = resTxt;
-            hablar(resTxt, currentBot);
-        } catch (e) { iaDiv.innerText = "Error: " + e.message; }
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    document.getElementById('btn-enviar').onclick = enviar;
-    document.getElementById('user-input').onkeypress = (e) => { if(e.key==='Enter') enviar(); };
-    
-    window.onload = () => { 
-        renderModelCheckboxes();
-        if(bots.length > 0) switchView('view-list'); 
-    };
-</script>
-</body>
-</html>
+                alert('Error al guardar personaje: ' + (data
