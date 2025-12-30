@@ -719,75 +719,88 @@ async function eliminarModelo(id) {
         }
     };
 
-    function renderBots() {
-        const container = document.getElementById('bot-list-container');
-        container.innerHTML = '';
+  function renderBots() {
+    const container = document.getElementById('bot-list-container');
+    container.innerHTML = '';
+    
+    if (bots.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
+        return;
+    }
+    
+    bots.forEach(bot => {
+        const el = document.createElement('div');
+        el.className = 'bot-item';
         
-        if (bots.length === 0) {
-            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
-            return;
-        }
+        // Usar image_url de Supabase o image_base64 como fallback
+        const imgSrc = bot.image_url || bot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
         
-        bots.forEach(bot => {
-            const el = document.createElement('div');
-            el.className = 'bot-item';
-            
-            const imgSrc = bot.image_base64 || bot.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
-            
-            el.innerHTML = `
-                <div class="bot-item-left" onclick="openChat(${bot.id})">
-                    <img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
-                    <div class="bot-info-mini">
-                        <h4>${bot.name}</h4>
-                        <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
-                    </div>
-                </div>
-                <button class="btn-delete" onclick="deleteBot(event, ${bot.id})">
-                    <i data-lucide="trash-2" size="18"></i>
-                </button>
-            `;
-            container.appendChild(el);
+        // Crear el contenedor izquierdo
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'bot-item-left';
+        leftDiv.onclick = () => openChat(bot.id);
+        
+        leftDiv.innerHTML = `
+            <img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
+            <div class="bot-info-mini">
+                <h4>${bot.name}</h4>
+                <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
+            </div>
+        `;
+        
+        // Crear botón eliminar
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-delete';
+        delBtn.innerHTML = '<i data-lucide="trash-2" size="18"></i>';
+        delBtn.onclick = (e) => deleteBot(e, bot.id);
+        
+        el.appendChild(leftDiv);
+        el.appendChild(delBtn);
+        container.appendChild(el);
+    });
+    lucide.createIcons();
+}
+
+async function deleteBot(e, id) {
+    e.stopPropagation();
+    if (!confirm('¿Eliminar este personaje?')) return;
+
+    try {
+        showLoading();
+        const response = await fetch(`${BACKEND_URL}/api/personajes/${id}`, {  // ← CORREGIDO: paréntesis en fetch()
+            method: 'DELETE'
         });
-        lucide.createIcons();
-    }
 
-    async function deleteBot(e, id) {
-        e.stopPropagation();
-        if (!confirm('¿Eliminar este personaje?')) return;
-
-        try {
-            showLoading();
-            const response = await fetch(`${BACKEND_URL}/api/personajes/${id}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                await cargarPersonajes();
-                alert('✅ Personaje eliminado exitosamente');
-            } else {
-                alert('❌ Error al eliminar personaje');
-            }
-        } catch (error) {
-            console.error('Error eliminando personaje:', error);
+        const data = await response.json();
+        
+        if (data.success) {
+            await cargarPersonajes();
+            alert('✅ Personaje eliminado exitosamente');
+        } else {
             alert('❌ Error al eliminar personaje');
-        } finally {
-            hideLoading();
         }
+    } catch (error) {
+        console.error('Error eliminando personaje:', error);
+        alert('❌ Error al eliminar personaje');
+    } finally {
+        hideLoading();
     }
+}
 
-    function openChat(botId) {
-        currentBot = bots.find(b => b.id === botId);
-        if (!currentBot) return;
-        
-        const imgSrc = currentBot.image_base64 || currentBot.image || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
-        
-        document.getElementById('display-name').innerText = currentBot.name;
-        document.getElementById('chat-avatar').src = imgSrc;
-        document.getElementById('messages').innerHTML = "";
-        switchView('view-chat');
+function openChat(botId) {
+    currentBot = bots.find(b => b.id === botId);
+    if (!currentBot) {
+        console.error('Bot no encontrado:', botId);
+        return;
     }
+    
+    const imgSrc = currentBot.image_url || currentBot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
+    
+    document.getElementById('display-name').innerText = currentBot.name;
+    document.getElementById('chat-avatar').src = imgSrc;
+    document.getElementById('messages').innerHTML = "";
+    switchView('view-chat');
+}
 
     // ==================== VOZ ====================
     async function hablar(texto, params = null) {
@@ -915,4 +928,5 @@ async function eliminarModelo(id) {
 </script>
 </body>
 </html>
+
 
