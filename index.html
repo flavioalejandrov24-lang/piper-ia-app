@@ -846,67 +846,65 @@ function openChat(botId) {
     };
 
     // ==================== CHAT ====================
-    async function enviar() {
-        const input = document.getElementById('user-input');
-        const texto = input.value.trim();
-        if (!texto) return;
+  async function enviar() {
+    const input = document.getElementById('user-input');
+    const texto = input.value.trim();
+    if (!texto) return;
 
-        const messagesContainer = document.getElementById('messages');
-        const userDiv = document.createElement('div');
-        userDiv.className = 'msg user-msg'; 
-        userDiv.innerText = texto;
-        messagesContainer.appendChild(userDiv);
-        input.value = "";
+    const messagesContainer = document.getElementById('messages');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'msg user-msg'; 
+    userDiv.innerText = texto;
+    messagesContainer.appendChild(userDiv);
+    input.value = "";
 
-        const iaDiv = document.createElement('div');
-        iaDiv.className = 'msg ia-msg'; 
-        iaDiv.innerText = "⏳ Pensando...";
-        messagesContainer.appendChild(iaDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const iaDiv = document.createElement('div');
+    iaDiv.className = 'msg ia-msg'; 
+    iaDiv.innerText = "⏳ Pensando...";
+    messagesContainer.appendChild(iaDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        try {
-            // Obtener configuración del modelo
-            const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
-            
-            if (!modelConfig) {
-                throw new Error("Modelo no encontrado");
-            }
-
-            const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural y conversacional.`;
-
-            const response = await fetch(`${BACKEND_URL}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model_id: currentBot.model_id,
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: texto }
-                    ]
-                })
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                const resTxt = data.response;
-                iaDiv.innerText = resTxt;
-                
-                // Hablar con la voz configurada del bot
-                hablar(resTxt, {
-                    voice: currentBot.voice,
-                    rate: currentBot.rate,
-                    pitch: currentBot.pitch
-                });
-            } else {
-                iaDiv.innerText = "❌ Error: " + (data.error || 'Error desconocido');
-            }
-        } catch (e) { 
-            iaDiv.innerText = "❌ Error: " + e.message; 
-            console.error('Error en chat:', e);
+    try {
+        // Obtener configuración del modelo
+        const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
+        
+        if (!modelConfig) {
+            throw new Error("Modelo no encontrado");
         }
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural y conversacional.`;
+
+        const response = await fetch(`${BACKEND_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model_id: currentBot.model_id,
+                message: texto,  // ✅ CAMBIO: "message" singular en lugar de "messages"
+                system_prompt: systemPrompt  // ✅ Enviar el system prompt por separado
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const resTxt = data.response;
+            iaDiv.innerText = resTxt;
+            
+            // Hablar con la voz configurada del bot
+            hablar(resTxt, {
+                voice: currentBot.voice,
+                rate: currentBot.rate,
+                pitch: currentBot.pitch
+            });
+        } else {
+            iaDiv.innerText = "❌ Error: " + (data.error || 'Error desconocido');
+        }
+    } catch (e) { 
+        iaDiv.innerText = "❌ Error: " + e.message; 
+        console.error('Error en chat:', e);
     }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
 
     document.getElementById('btn-enviar').onclick = enviar;
     document.getElementById('user-input').onkeypress = (e) => { 
@@ -926,6 +924,7 @@ function openChat(botId) {
 </script>
 </body>
 </html>
+
 
 
 
