@@ -676,58 +676,59 @@ async function eliminarModelo(id) {
 }
 
     // ==================== PERSONAJES ====================
-    document.getElementById('btn-save').onclick = async () => {
+ document.getElementById('btn-save').onclick = async () => {
     const name = document.getElementById('ai-name').value.trim();
     if(!name) return alert("❌ Ponle nombre al personaje");
     
     if(!selectedModelId) return alert("❌ Selecciona un modelo");
 
-    // ✅ AGREGA ESTA VALIDACIÓN:
+    // ✅ VALIDAR que el modelo existe
     const allModels = [...defaultModels, ...customModels];
     const modeloExiste = allModels.find(m => m.id === selectedModelId);
     
     if (!modeloExiste) {
-        alert('❌ El modelo seleccionado ya no existe. Recargando...');
+        alert('❌ El modelo seleccionado ya no existe. Recargando modelos...');
         await cargarModelos();
         return;
     }
 
     try {
         showLoading();
-            const response = await fetch(`${BACKEND_URL}/api/personajes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: name,
-                    persona: document.getElementById('ai-persona').value,
-                    model_id: selectedModelId,
-                    voice: document.getElementById('voice-select').value,
-                    rate: document.getElementById('voice-rate').value,
-                    pitch: document.getElementById('voice-pitch').value,
-                    image_base64: tempImage || null
-                })
-            });
+        const response = await fetch(`${BACKEND_URL}/api/personajes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                persona: document.getElementById('ai-persona').value,
+                model_id: selectedModelId,
+                voice: document.getElementById('voice-select').value,
+                rate: document.getElementById('voice-rate').value,
+                pitch: document.getElementById('voice-pitch').value,
+                image_base64: tempImage || null
+            })
+        });
 
-            const data = await response.json();
-            
-            if (data.success) {
-                alert('✅ Personaje guardado exitosamente');
-                document.getElementById('ai-name').value = '';
-                document.getElementById('ai-persona').value = '';
-                tempImage = '';
-                document.getElementById('avatar-preview').style.display = 'none';
-                document.getElementById('preview-placeholder').style.display = 'block';
-                switchView('view-list');
-            } else {
-                alert('❌ Error al guardar personaje: ' + (data.error || 'Desconocido'));
-            }
-        } catch (error) {
-            console.error('Error guardando personaje:', error);
-            alert('❌ Error al guardar personaje. Verifica tu conexión.');
-        } finally {
-            hideLoading();
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Personaje guardado exitosamente');
+            document.getElementById('ai-name').value = '';
+            document.getElementById('ai-persona').value = '';
+            tempImage = '';
+            document.getElementById('avatar-preview').style.display = 'none';
+            document.getElementById('preview-placeholder').style.display = 'block';
+            switchView('view-list');
+        } else {
+            alert('❌ Error al guardar personaje: ' + (data.error || 'Desconocido'));
         }
-    };
+    } catch (error) {
+        console.error('Error guardando personaje:', error);
+        alert('❌ Error al guardar personaje. Verifica tu conexión.');
+    } finally {
+        hideLoading();
+    }
+};
+
 
   function renderBots() {
     const container = document.getElementById('bot-list-container');
@@ -975,6 +976,7 @@ function openChat(botId) {
 </script>
 </body>
 </html>
+
 
 
 
