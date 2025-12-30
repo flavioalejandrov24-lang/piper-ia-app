@@ -454,29 +454,40 @@
     lucide.createIcons();
 
     // ==================== FUNCIONES DE CARGA ====================
-    async function cargarModelos() {
-        try {
-            showLoading();
-            const response = await fetch(`${BACKEND_URL}/api/models`);
-            const data = await response.json();
+   async function cargarModelos() {
+    try {
+        showLoading();
+        const response = await fetch(`${BACKEND_URL}/api/models`);
+        const data = await response.json();
+        
+        if (data.success) {
+            defaultModels = data.models.filter(m => !m.is_custom);
+            customModels = data.models.filter(m => m.is_custom);
             
-            if (data.success) {
-                defaultModels = data.models.filter(m => !m.is_custom);
-                customModels = data.models.filter(m => m.is_custom);
+            // ✅ VALIDAR que el modelo seleccionado existe
+            const allModels = [...defaultModels, ...customModels];
+            
+            if (allModels.length > 0) {
+                const existeModeloSeleccionado = allModels.find(m => m.id === selectedModelId);
                 
-                if (defaultModels.length > 0 && !selectedModelId) {
-                    selectedModelId = defaultModels[0].id;
+                if (!existeModeloSeleccionado || !selectedModelId) {
+                    selectedModelId = allModels[0].id;
+                    console.log('✅ Modelo auto-seleccionado:', selectedModelId);
                 }
-                
-                renderModelCheckboxes();
+            } else {
+                selectedModelId = null;
+                console.warn('⚠️ No hay modelos disponibles');
             }
-        } catch (error) {
-            console.error('Error cargando modelos:', error);
-            alert('Error al cargar modelos. Verifica tu conexión.');
-        } finally {
-            hideLoading();
+            
+            renderModelCheckboxes();
         }
+    } catch (error) {
+        console.error('Error cargando modelos:', error);
+        alert('Error al cargar modelos. Verifica tu conexión.');
+    } finally {
+        hideLoading();
     }
+}
 
     async function cargarPersonajes() {
         try {
@@ -924,6 +935,7 @@ function openChat(botId) {
 </script>
 </body>
 </html>
+
 
 
 
