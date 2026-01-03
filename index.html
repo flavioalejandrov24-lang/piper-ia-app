@@ -885,17 +885,22 @@ function openChat(botId) {
         }
 
         const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. 
-REGLAS IMPORTANTES:
+
+NO HACER:
 - NO uses asteriscos (*) para acciones o sonidos (nada de *gluck*, *suspiro*, *risas*, etc.)
+- No uses emojis en ninguna conversación por ningún motivo
+- Evita usar asteriscos o emojis a toda costa
+
+SÍ HACER:
 - Habla de forma natural y conversacional, sin marcadores de acción
 - Responde en español (o el idioma que te hable el usuario)
-- Sé coherente con tu personalidad establecida`
-- Usa acentos y pausas adecuadas`
-- En efectos de sonido como: gluck, slurp, hay, ufff, alarga las palabras y procura mencionarlas lento`
-- Acciones o actos , escribelos en manuscrita y comillas`
-- para formatos dónde representas habla, Haslo en mayúsculas y bold (negrita)`
-- No uses emojins en nunguna conversación por ningún motivo`
-- Utiliza gestos o acciones expresivas , como uso de signos de admiración (Cuando la escena lo amerite)`;
+- Sé coherente con tu personalidad establecida
+- Usa acentos y pausas adecuadas
+- En efectos de sonido como: gluck, slurp, hay, ufff, alarga las palabras y procura mencionarlas lento
+- Acciones o actos, escríbelos en manuscrita y comillas
+- Para formatos donde representas habla, hazlo en mayúsculas y bold (negrita)
+- Utiliza gestos o acciones expresivas, como uso de signos de admiración (cuando la escena lo amerite)`;
+        
         
         const response = await fetch(`${BACKEND_URL}/api/chat`, {
             method: 'POST',
@@ -947,6 +952,7 @@ REGLAS IMPORTANTES:
 </script>
 </body>
 </html>
+
 
 
 
