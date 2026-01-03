@@ -884,8 +884,19 @@ function openChat(botId) {
             throw new Error("Modelo no encontrado");
         }
 
-        const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. Habla de forma natural y conversacional.`;
-
+        const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. 
+REGLAS IMPORTANTES:
+- NO uses asteriscos (*) para acciones o sonidos (nada de *gluck*, *suspiro*, *risas*, etc.)
+- Habla de forma natural y conversacional, sin marcadores de acción
+- Responde en español (o el idioma que te hable el usuario)
+- Sé coherente con tu personalidad establecida`
+- Usa acentos y pausas adecuadas`
+- En efectos de sonido como: gluck, slurp, hay, ufff, alarga las palabras y procura mencionarlas lento`
+- Acciones o actos , escribelos en manuscrita y comillas`
+- para formatos dónde representas habla, Haslo en mayúsculas y bold (negrita)`
+- No uses emojins en nunguna conversación por ningún motivo`
+- Utiliza gestos o acciones expresivas , como uso de signos de admiración (Cuando la escena lo amerite)`;
+        
         const response = await fetch(`${BACKEND_URL}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -936,6 +947,7 @@ function openChat(botId) {
 </script>
 </body>
 </html>
+
 
 
 
