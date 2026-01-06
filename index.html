@@ -445,10 +445,6 @@
 <script>
     // ==================== ⚙️ CONFIGURACIÓN - INGRESA AQUÍ TUS CREDENCIALES ====================
     
-    // 🔑 SUPABASE - Ingresa tu URL y KEY aquí:
-    const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";  // ← Ejemplo: "https://xxxxx.supabase.co"
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";  // ← Tu clave anónima de Supabase
-    
     // 🎤 PIPER TTS Server (HuggingFace)
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
@@ -500,8 +496,8 @@
     // ==================== INICIALIZACIÓN ====================
     function initSupabase() {
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY || 
-            SUPABASE_URL === "TU_SUPABASE_URL_AQUI" || 
-            SUPABASE_ANON_KEY === "TU_SUPABASE_ANON_KEY_AQUI") {
+            SUPABASE_URL === "https://bmnmfpxorpkksczdewnp.supabase.co" || 
+            SUPABASE_ANON_KEY === "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY") {
             console.error('❌ ERROR: Debes configurar SUPABASE_URL y SUPABASE_ANON_KEY en el código');
             alert('⚠️ Configuración incompleta: Debes agregar tus credenciales de Supabase en el código (líneas 342-343)');
             return false;
@@ -1055,4 +1051,5 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
 
