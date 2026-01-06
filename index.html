@@ -451,10 +451,11 @@
     const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
+    const STORAGE_BUCKET = "personajes-avatars";
 
     const AI_MODELS = [
         {
-            id: 'f4a1726c-bf13-4043-ad2e-80fbbfdcee47',
+            id: 'groq-llama',
             name: 'Groq Llama 3.3',
             url: 'https://api.groq.com/openai/v1/chat/completions',
             api_key: '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',
@@ -462,28 +463,12 @@
             type: 'openai'
         },
         {
-            id: '2c4c1ce6-a3ec-4250-950d-abcc2cb104dc',
-            name: 'Gemini 2.5 Flash',
-            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
-            api_key: 'AIzaSyCi90bHv0AMNRhO9lifcrHiSv5HNuTY9iA',
-            model: 'gemini-2.0-flash-exp',
-            type: 'gemini'
-        },
-        {
-            id: '2038e354-8818-4dee-bfdf-98ab9bd3ac8a',
+            id: 'olmos-ia',
             name: 'Olmos IA',
             url: 'https://openrouter.ai/api/v1/chat/completions',
             api_key: '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',
             model: 'allenai/olmo-2-1124-13b-instruct',
             type: 'openai'
-        },
-        {
-            id: '672b0388-9831-4b64-999f-1c38a3864b7a',
-            name: 'Gemma Local',
-            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
-            api_key: 'No-key',
-            model: 'gemma',
-            type: 'custom'
         }
     ];
 
@@ -492,6 +477,7 @@
     let bots = [];
     let currentBot = null;
     let tempImage = "";
+    let tempImageFile = null;
     let lastAudioBlob = null;
     let currentModelIndex = 0;
     let editingBotId = null;
@@ -537,6 +523,39 @@
         lucide.createIcons();
     }
 
+    // ==================== STORAGE ====================
+    async function subirImagenStorage(imageFile) {
+        if (!imageFile) return null;
+        
+        try {
+            const fileName = `avatar_${Date.now()}.jpg`;
+            
+            const { data, error } = await dbClient.storage
+                .from(STORAGE_BUCKET)
+                .upload(fileName, imageFile, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+            
+            if (error) {
+                console.error('Error subiendo imagen:', error);
+                throw error;
+            }
+            
+            const { data: urlData } = dbClient.storage
+                .from(STORAGE_BUCKET)
+                .getPublicUrl(fileName);
+            
+            console.log('✅ Imagen subida:', urlData.publicUrl);
+            return urlData.publicUrl;
+            
+        } catch (error) {
+            console.error('❌ Error en subirImagenStorage:', error);
+            alert('Error subiendo imagen: ' + error.message);
+            return null;
+        }
+    }
+
     // ==================== PERSONAJES ====================
     async function cargarPersonajes() {
         if (!dbClient) {
@@ -577,7 +596,7 @@
             const el = document.createElement('div');
             el.className = 'bot-item';
             
-            const imgSrc = bot.image_url || bot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
+            const imgSrc = bot.image_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
             
             const leftDiv = document.createElement('div');
             leftDiv.className = 'bot-item-left';
@@ -629,18 +648,31 @@
         try {
             showLoading();
             
+            let imageUrl = null;
+            
+            if (tempImageFile) {
+                console.log('📤 Subiendo imagen nueva...');
+                imageUrl = await subirImagenStorage(tempImageFile);
+            }
+            
             const personajeData = {
                 name: name,
                 persona: document.getElementById('ai-persona').value,
-                voice: document.getElementById('voice-select').value,
+                voice_type: document.getElementById('voice-select').value,
                 rate: parseFloat(document.getElementById('voice-rate').value),
-                pitch: parseFloat(document.getElementById('voice-pitch').value),
-                image_base64: tempImage || null,
-                model_id: null,
-                model_name: null
+                pitch: parseFloat(document.getElementById('voice-pitch').value)
             };
             
             if (editingBotId) {
+                if (imageUrl) {
+                    personajeData.image_url = imageUrl;
+                } else {
+                    const botActual = bots.find(b => b.id === editingBotId);
+                    if (botActual && botActual.image_url) {
+                        personajeData.image_url = botActual.image_url;
+                    }
+                }
+                
                 const { data, error } = await dbClient
                     .from('personajes')
                     .update(personajeData)
@@ -648,14 +680,20 @@
                     .select();
 
                 if (error) throw error;
+                console.log('✅ Personaje actualizado:', data);
                 alert('✅ Personaje actualizado');
             } else {
+                if (imageUrl) {
+                    personajeData.image_url = imageUrl;
+                }
+                
                 const { data, error } = await dbClient
                     .from('personajes')
                     .insert([personajeData])
                     .select();
 
                 if (error) throw error;
+                console.log('✅ Personaje creado:', data);
                 alert('✅ Personaje creado');
             }
             
@@ -678,6 +716,7 @@
         document.getElementById('voice-pitch').value = '0.667';
         document.getElementById('val-pitch').innerText = '0.667';
         tempImage = '';
+        tempImageFile = null;
         document.getElementById('avatar-preview').style.display = 'none';
         document.getElementById('preview-placeholder').style.display = 'block';
         editingBotId = null;
@@ -693,19 +732,19 @@
         
         document.getElementById('ai-name').value = bot.name;
         document.getElementById('ai-persona').value = bot.persona || '';
-        document.getElementById('voice-select').value = bot.voice;
+        document.getElementById('voice-select').value = bot.voice_type;
         document.getElementById('voice-rate').value = bot.rate || 1.0;
         document.getElementById('val-rate').innerText = bot.rate || 1.0;
         document.getElementById('voice-pitch').value = bot.pitch || 0.667;
         document.getElementById('val-pitch').innerText = bot.pitch || 0.667;
         
-        if (bot.image_url || bot.image_base64) {
-            const imgSrc = bot.image_url || bot.image_base64;
-            document.getElementById('avatar-preview').src = imgSrc;
+        if (bot.image_url) {
+            document.getElementById('avatar-preview').src = bot.image_url;
             document.getElementById('avatar-preview').style.display = 'block';
             document.getElementById('preview-placeholder').style.display = 'none';
-            tempImage = bot.image_base64 || '';
         }
+        
+        tempImageFile = null;
         
         document.getElementById('btn-save-text').innerText = 'Actualizar';
         document.querySelector('#view-config .header h2').innerText = 'Editar Personaje';
@@ -744,7 +783,7 @@
             return;
         }
         
-        const imgSrc = currentBot.image_url || currentBot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
+        const imgSrc = currentBot.image_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
         
         document.getElementById('display-name').innerText = currentBot.name;
         document.getElementById('chat-avatar').src = imgSrc;
@@ -801,7 +840,7 @@ SÍ HACER:
             iaDiv.innerText = respuesta;
             
             hablar(respuesta, {
-                voice: currentBot.voice,
+                voice: currentBot.voice_type,
                 rate: currentBot.rate,
                 pitch: currentBot.pitch
             });
@@ -844,42 +883,6 @@ SÍ HACER:
         return data.choices[0].message.content;
     }
 
-    async function llamarIAGemini(model, systemPrompt, userMessage) {
-        const response = await fetch(`${model.url}?key=${model.api_key}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: `${systemPrompt}\n\nUsuario: ${userMessage}` }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 500
-                }
-            })
-        });
-
-        if (!response.ok) throw new Error(`Error ${response.status}`);
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-    }
-
-    async function llamarIACustom(model, systemPrompt, userMessage) {
-        const response = await fetch(`${model.url}/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                prompt: `${systemPrompt}\n\nUsuario: ${userMessage}`,
-                max_tokens: 500,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) throw new Error(`Error ${response.status}`);
-        const data = await response.json();
-        return data.generated_text || data.response || data.text;
-    }
-
     async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
         let ultimoError = null;
         
@@ -889,16 +892,9 @@ SÍ HACER:
             try {
                 console.log(`🤖 Intentando: ${model.name}`);
                 
-                let respuesta;
-                if (model.type === 'gemini') {
-                    respuesta = await llamarIAGemini(model, systemPrompt, userMessage);
-                } else if (model.type === 'custom') {
-                    respuesta = await llamarIACustom(model, systemPrompt, userMessage);
-                } else {
-                    respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
-                }
+                const respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
                 
-                console.log(`✅ Éxito: ${model.name}`);
+                console.log(`✅ Éxito con: ${model.name}`);
                 return respuesta;
                 
             } catch (error) {
@@ -906,19 +902,19 @@ SÍ HACER:
                 ultimoError = error;
                 
                 if (i < intentosMaximos - 1) {
-                    console.log('🔄 Rotando...');
+                    console.log('🔄 Rotando al siguiente modelo...');
                     continue;
                 }
             }
         }
         
-        throw new Error(`Todos fallaron. Último error: ${ultimoError.message}`);
+        throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError.message}`);
     }
 
     // ==================== VOZ ====================
     async function hablar(texto, params = null) {
         if (!texto) return;
-        const voiceModel = params?.voice || document.getElementById('voice-select').value;
+        const voiceModel = params?.voice || currentBot?.voice_type || document.getElementById('voice-select').value;
         const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
         const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
         
@@ -966,6 +962,9 @@ SÍ HACER:
     // ==================== IMAGEN ====================
     function previewImage(input) {
         if (input.files && input.files[0]) {
+            const file = input.files[0];
+            tempImageFile = file;
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 const preview = document.getElementById('avatar-preview');
@@ -974,7 +973,7 @@ SÍ HACER:
                 document.getElementById('preview-placeholder').style.display = 'none';
                 tempImage = e.target.result;
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
         }
     }
 
@@ -1028,6 +1027,7 @@ SÍ HACER:
         
         console.log('✅ Aplicación lista');
         console.log(`🤖 ${AI_MODELS.length} modelos disponibles`);
+        console.log(`📦 Bucket: ${STORAGE_BUCKET}`);
     });
 
 })();
