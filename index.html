@@ -443,52 +443,15 @@
 
 <script>
     // ==================== ⚙️ CONFIGURACIÓN ====================
-    
-    // 🔑 SUPABASE
     const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";
-    
-    // 🎤 PIPER TTS Server
+
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
-    // 🤖 CONFIGURACIÓN DE IAs
-    const AI_MODELS = [
-        {
-            id: 'f4a1726c-bf13-4043-ad2e-80fbbfdcee47',
-            name: 'Groq Llama 3.3',
-            url: 'https://api.groq.com/openai/v1/chat/completions',
-            api_key: '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',
-            model: 'llama-3.3-70b-versatile',
-            type: 'openai'
-        },
-        {
-            id: '2c4c1ce6-a3ec-4250-950d-abcc2cb104dc',
-            name: 'Gemini 2.5 Flash',
-            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
-            api_key: 'AIzaSyCi90bHv0AMNRhO9lifcrHiSv5HNuTY9iA',
-            model: 'gemini-2.0-flash-exp',
-            type: 'gemini'
-        },
-        {
-            id: '2038e354-8818-4dee-bfdf-98ab9bd3ac8a',
-            name: 'Olmos IA',
-            url: 'https://openrouter.ai/api/v1/chat/completions',
-            api_key: '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',
-            model: 'allenai/olmo-2-1124-13b-instruct',
-            type: 'openai'
-        },
-        {
-            id: '672b0388-9831-4b64-999f-1c38a3864b7a',
-            name: 'Gemma Local',
-            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
-            api_key: 'No-key',
-            model: 'gemma',
-            type: 'custom'
-        }
-    ];
+    const AI_MODELS = [ /* ... tus modelos ... */ ];
 
     // ==================== VARIABLES GLOBALES ====================
-    let supabase = null;   // 👈 Declarada solo una vez
+    let supabase = null;
     let bots = [];
     let currentBot = null;
     let tempImage = "";
@@ -503,8 +466,6 @@
             alert('⚠️ Configuración incompleta de Supabase');
             return false;
         }
-        
-        // 👇 Aquí ya no usamos "let" ni "const", solo asignamos
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase inicializado correctamente');
         return true;
@@ -516,16 +477,13 @@
             console.error('Supabase no está inicializado');
             return;
         }
-        
         try {
             showLoading();
             const { data, error } = await supabase
                 .from('personajes')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
             if (error) throw error;
-            
             bots = data || [];
             renderBots();
             console.log(`✅ ${bots.length} personajes cargados`);
@@ -542,22 +500,21 @@
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById(viewId).classList.add('active');
         
-        if(viewId === 'view-list') {
+        if (viewId === 'view-list') {
             cargarPersonajes();
         }
-        
-        if(viewId === 'view-config' && editingBotId === null) {
+        if (viewId === 'view-config' && editingBotId === null) {
             limpiarFormulario();
         }
-    }
-        
+
+        // 👇 Este bloque estaba fuera, ahora está dentro de la función
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        if(viewId === 'view-config') {
+        if (viewId === 'view-config') {
             document.querySelectorAll('.nav-item')[0].classList.add('active');
-        } else if(viewId === 'view-list') {
+        } else if (viewId === 'view-list') {
             document.querySelectorAll('.nav-item')[1].classList.add('active');
         }
-        
+
         lucide.createIcons();
     }
 
@@ -587,7 +544,7 @@
     // ==================== PERSONAJES ====================
     document.getElementById('btn-save').onclick = async () => {
         const name = document.getElementById('ai-name').value.trim();
-        if(!name) return alert("❌ Ponle nombre al personaje");
+        if (!name) return alert("❌ Ponle nombre al personaje");
         
         if (!supabase) {
             alert('⚠️ Supabase no está configurado. Revisa las credenciales en el código.');
@@ -596,7 +553,6 @@
 
         try {
             showLoading();
-            
             const personajeData = {
                 name: name,
                 persona: document.getElementById('ai-persona').value,
@@ -609,30 +565,24 @@
             };
             
             if (editingBotId) {
-                // ACTUALIZAR personaje existente
                 const { data, error } = await supabase
                     .from('personajes')
                     .update(personajeData)
                     .eq('id', editingBotId)
                     .select();
-
                 if (error) throw error;
                 alert('✅ Personaje actualizado exitosamente');
             } else {
-                // CREAR nuevo personaje
                 const { data, error } = await supabase
                     .from('personajes')
                     .insert([personajeData])
                     .select();
-
                 if (error) throw error;
                 alert('✅ Personaje creado exitosamente');
             }
             
-            // Limpiar formulario
             limpiarFormulario();
             switchView('view-list');
-            
         } catch (error) {
             console.error('Error guardando personaje:', error);
             alert('❌ Error al guardar personaje: ' + error.message);
@@ -1054,6 +1004,7 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
 
 
 
