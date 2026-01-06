@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configura tu IA con Piper</title>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary: #764ba2;
@@ -106,32 +107,9 @@
             display: flex; align-items: center; gap: 12px; margin-top: 4px;
         }
         .range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; }
-        .range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; }
+        .range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+        .range-group input::-moz-range-thumb { width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; border: none; }
         .range-val { min-width: 40px; font-size: 0.85rem; color: var(--primary); font-weight: 800; text-align: right; }
-
-        .model-checkbox-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-        }
-        .model-checkbox-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: white;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            transition: all 0.2s;
-        }
-        .model-checkbox-item:hover { border-color: var(--primary); background: #fdfaff; }
-        .model-checkbox-left { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; }
-        .model-checkbox-left input { width: auto; margin: 0; cursor: pointer; }
-        .model-checkbox-left span { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
 
         .btn-group {
             display: grid;
@@ -184,7 +162,6 @@
             align-items: center; 
             justify-content: space-between;
             gap: 12px;
-            cursor: pointer; 
             transition: 0.2s; 
             position: relative;
         }
@@ -195,7 +172,28 @@
             align-items: center;
             gap: 12px;
             flex: 1;
+            cursor: pointer;
         }
+
+        .bot-item-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-edit {
+            background: #dbeafe;
+            color: #2563eb;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-edit:hover { background: #bfdbfe; transform: scale(1.1); }
 
         .bot-img-mini { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; }
         .bot-info-mini { flex: 1; }
@@ -220,8 +218,40 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #f8fafc; }
-        .msg { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 0.95rem; line-height: 1.4; }
+        #messages { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            background: #f8fafc;
+            position: relative;
+        }
+        
+        #messages::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.08;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .msg { 
+            max-width: 80%; 
+            padding: 12px 16px; 
+            border-radius: 16px; 
+            font-size: 0.95rem; 
+            line-height: 1.4;
+            position: relative;
+            z-index: 1;
+        }
         .user-msg { align-self: flex-end; background: #0084ff; color: white; border-bottom-right-radius: 4px; }
         .ia-msg { align-self: flex-start; background: #e2e8f0; color: var(--text-main); border-bottom-left-radius: 4px; }
 
@@ -307,11 +337,6 @@
                 <textarea id="ai-persona" rows="2" placeholder="Ej: Amigable y atenta"></textarea>
             </div>
 
-            <div class="field">
-                <label>Modelos de Texto Disponibles:</label>
-                <div id="model-checkbox-container" class="model-checkbox-list"></div>
-            </div>
-
             <hr>
             <span class="section-title">🔊 CONFIGURACIÓN DE VOZ</span>
 
@@ -323,7 +348,6 @@
                         <option value="es_AR-daniela-high.onnx">🇦🇷 Daniela (High)</option>
                     </optgroup>
                     <optgroup label="Hombres">
-                        <option value="es_MX-ald-medium.onnx" selected>🇲🇽 Ald (Medium)</option>
                         <option value="es_ES-carlfm-x_low.onnx">🇪🇸 CarlfM (X-Low)</option>
                         <option value="es_ES-davefx-medium.onnx">🇪🇸 DaveFX (Medium)</option>
                     </optgroup>
@@ -352,34 +376,14 @@
             </div>
 
             <hr>
-            <span class="section-title">⚙️ REGISTRAR MODELO ADICIONAL</span>
-            
-            <div class="field">
-                <label>Nombre del Modelo:</label>
-                <input type="text" id="new-model-name" placeholder="Ej: Llama 4 Custom">
-            </div>
-            <div class="field">
-                <label>URL API:</label>
-                <input type="text" id="new-model-url" placeholder="https://api.ejemplo.com/v1/chat/completions">
-            </div>
-            <div class="field">
-                <label>API Key:</label>
-                <input type="password" id="new-model-apikey" placeholder="sk-...">
-            </div>
-
-            <hr>
             <span class="section-title">🚀 ACCIONES</span>
-
-            <button onclick="registrarNuevoModelo()" class="btn btn-secondary" style="width: 100%; margin-bottom: 12px;">
-                <i data-lucide="plus"></i> Registrar Modelo
-            </button>
 
             <div class="btn-group">
                 <button id="btn-test" class="btn btn-test">
                     <i data-lucide="volume-2"></i> Probar Voz
                 </button>
                 <button id="btn-save" class="btn btn-primary">
-                    <i data-lucide="check-circle"></i> Guardar IA
+                    <i data-lucide="check-circle"></i> <span id="btn-save-text">Crear Avatar</span>
                 </button>
                 <button id="btn-download" class="btn btn-secondary" onclick="descargarWav()">
                     <i data-lucide="file-audio"></i> .wav
@@ -439,70 +443,97 @@
 </div>
 
 <script>
-    // ==================== CONFIGURACIÓN ====================
-    const BACKEND_URL = "https://piper-backend-six.vercel.app";
+    // ==================== ⚙️ CONFIGURACIÓN - INGRESA AQUÍ TUS CREDENCIALES ====================
+    
+    // 🔑 SUPABASE - Ingresa tu URL y KEY aquí:
+    const SUPABASE_URL = "TU_SUPABASE_URL_AQUI";  // ← Ejemplo: "https://xxxxx.supabase.co"
+    const SUPABASE_ANON_KEY = "TU_SUPABASE_ANON_KEY_AQUI";  // ← Tu clave anónima de Supabase
+    
+    // 🎤 PIPER TTS Server (HuggingFace)
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
+    // 🤖 CONFIGURACIÓN DE IAs (Ya están precargadas con tus datos)
+    const AI_MODELS = [
+        {
+            id: 'f4a1726c-bf13-4043-ad2e-80fbbfdcee47',
+            name: 'Groq Llama 3.3',
+            url: 'https://api.groq.com/openai/v1/chat/completions',
+            api_key: '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',
+            model: 'llama-3.3-70b-versatile',
+            type: 'openai' // Compatible con OpenAI API
+        },
+        {
+            id: '2c4c1ce6-a3ec-4250-950d-abcc2cb104dc',
+            name: 'Gemini 2.5 Flash',
+            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+            api_key: 'AIzaSyCi90bHv0AMNRhO9lifcrHiSv5HNuTY9iA',
+            model: 'gemini-2.0-flash-exp',
+            type: 'gemini' // Formato especial de Gemini
+        },
+        {
+            id: '2038e354-8818-4dee-bfdf-98ab9bd3ac8a',
+            name: 'Olmos IA',
+            url: 'https://openrouter.ai/api/v1/chat/completions',
+            api_key: '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',
+            model: 'allenai/olmo-2-1124-13b-instruct',
+            type: 'openai'
+        },
+        {
+            id: '672b0388-9831-4b64-999f-1c38a3864b7a',
+            name: 'Gemma Local',
+            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
+            api_key: 'No-key',
+            model: 'gemma',
+            type: 'custom' // Servidor personalizado
+        }
+    ];
+
     // ==================== VARIABLES GLOBALES ====================
-    let defaultModels = [];
-    let customModels = [];
+    let supabase = null;
     let bots = [];
-    let selectedModelId = null;
     let currentBot = null;
     let tempImage = "";
     let lastAudioBlob = null;
+    let currentModelIndex = 0; // Para rotación de IAs
+    let editingBotId = null; // Para saber si estamos editando
 
-    lucide.createIcons();
+    // ==================== INICIALIZACIÓN ====================
+    function initSupabase() {
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || 
+            SUPABASE_URL === "TU_SUPABASE_URL_AQUI" || 
+            SUPABASE_ANON_KEY === "TU_SUPABASE_ANON_KEY_AQUI") {
+            console.error('❌ ERROR: Debes configurar SUPABASE_URL y SUPABASE_ANON_KEY en el código');
+            alert('⚠️ Configuración incompleta: Debes agregar tus credenciales de Supabase en el código (líneas 342-343)');
+            return false;
+        }
+        
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase inicializado correctamente');
+        return true;
+    }
 
     // ==================== FUNCIONES DE CARGA ====================
-   async function cargarModelos() {
-    try {
-        showLoading();
-        const response = await fetch(`${BACKEND_URL}/api/models`);
-        const data = await response.json();
-        
-        if (data.success) {
-            defaultModels = data.models.filter(m => !m.is_custom);
-            customModels = data.models.filter(m => m.is_custom);
-            
-            // ✅ VALIDAR que el modelo seleccionado existe
-            const allModels = [...defaultModels, ...customModels];
-            
-            if (allModels.length > 0) {
-                const existeModeloSeleccionado = allModels.find(m => m.id === selectedModelId);
-                
-                if (!existeModeloSeleccionado || !selectedModelId) {
-                    selectedModelId = allModels[0].id;
-                    console.log('✅ Modelo auto-seleccionado:', selectedModelId);
-                }
-            } else {
-                selectedModelId = null;
-                console.warn('⚠️ No hay modelos disponibles');
-            }
-            
-            renderModelCheckboxes();
-        }
-    } catch (error) {
-        console.error('Error cargando modelos:', error);
-        alert('Error al cargar modelos. Verifica tu conexión.');
-    } finally {
-        hideLoading();
-    }
-}
-
     async function cargarPersonajes() {
+        if (!supabase) {
+            console.error('Supabase no está inicializado');
+            return;
+        }
+        
         try {
             showLoading();
-            const response = await fetch(`${BACKEND_URL}/api/personajes`);
-            const data = await response.json();
+            const { data, error } = await supabase
+                .from('personajes')
+                .select('*')
+                .order('created_at', { ascending: false });
             
-            if (data.success) {
-                bots = data.personajes;
-                renderBots();
-            }
+            if (error) throw error;
+            
+            bots = data || [];
+            renderBots();
+            console.log(`✅ ${bots.length} personajes cargados`);
         } catch (error) {
             console.error('Error cargando personajes:', error);
-            alert('Error al cargar personajes. Verifica tu conexión.');
+            alert('❌ Error al cargar personajes: ' + error.message);
         } finally {
             hideLoading();
         }
@@ -515,6 +546,10 @@
         
         if(viewId === 'view-list') {
             cargarPersonajes();
+        }
+        
+        if(viewId === 'view-config' && editingBotId === null) {
+            limpiarFormulario();
         }
         
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -550,267 +585,216 @@
         }
     }
 
-   // ==================== MODELOS ====================
-async function registrarNuevoModelo() {
-    const nameInput = document.getElementById('new-model-name');
-    const urlInput = document.getElementById('new-model-url');
-    const keyInput = document.getElementById('new-model-apikey');
-
-    const name = nameInput.value.trim();
-    const url = urlInput.value.trim();
-    const apiKey = keyInput.value.trim();
-    
-    if (!name || !url || !apiKey) {
-        alert('Por favor, completa Nombre, URL y API Key.');
-        return;
-    }
-
-    try {
-        showLoading();
-        const response = await fetch(`${BACKEND_URL}/api/models`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: name,
-                url: url,
-                api_key: apiKey,
-                is_custom: true
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            alert('✅ Modelo registrado exitosamente');
-            nameInput.value = '';
-            urlInput.value = '';
-            keyInput.value = '';
-            await cargarModelos();
-        } else {
-            alert('❌ Error al registrar modelo: ' + (data.error || 'Desconocido'));
-        }
-    } catch (error) {
-        console.error('Error registrando modelo:', error);
-        alert('❌ Error al registrar modelo. Verifica tu conexión.');
-    } finally {
-        hideLoading();
-    }
-}
-
-function renderModelCheckboxes() {
-    const container = document.getElementById('model-checkbox-container');
-    container.innerHTML = '';
-    
-    const allModels = [...defaultModels, ...customModels];
-    
-    if (allModels.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:10px;">No hay modelos disponibles</p>';
-        return;
-    }
-    
-    allModels.forEach(m => {
-        const item = document.createElement('div');
-        item.className = 'model-checkbox-item';
-        
-        const left = document.createElement('div');
-        left.className = 'model-checkbox-left';
-        left.onclick = () => selectModel(m.id);
-        
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'ai-model-selection';
-        radio.checked = selectedModelId === m.id;
-        radio.onchange = () => selectModel(m.id);
-        
-        const span = document.createElement('span');
-        span.textContent = m.name;
-        
-        left.appendChild(radio);
-        left.appendChild(span);
-        item.appendChild(left);
-
-        // Botón de eliminar para TODOS los modelos
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-delete';
-        delBtn.innerHTML = '<i data-lucide="trash-2" size="14"></i>';
-        delBtn.onclick = (e) => {
-            e.stopPropagation();
-            eliminarModelo(m.id);
-        };
-        item.appendChild(delBtn);
-        
-        container.appendChild(item);
-    });
-    lucide.createIcons();
-}
-
-function selectModel(id) {
-    selectedModelId = id;
-    renderModelCheckboxes();
-}
-
-async function eliminarModelo(id) {
-    // Validar que no sea el último modelo
-    const totalModelos = defaultModels.length + customModels.length;
-    if (totalModelos <= 1) {
-        return alert('❌ Debes tener al menos un modelo activo');
-    }
-    
-    if (!confirm('¿Eliminar este modelo?')) return;
-
-    try {
-        showLoading();
-        const response = await fetch(`${BACKEND_URL}/api/models/${id}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            // Si eliminaste el modelo seleccionado, seleccionar otro
-            if (selectedModelId === id) {
-                const remainingModels = [...defaultModels, ...customModels].filter(m => m.id !== id);
-                if (remainingModels.length > 0) {
-                    selectedModelId = remainingModels[0].id;
-                }
-            }
-            await cargarModelos();
-            alert('✅ Modelo eliminado exitosamente');
-        } else {
-            alert('❌ Error al eliminar modelo');
-        }
-    } catch (error) {
-        console.error('Error eliminando modelo:', error);
-        alert('❌ Error al eliminar modelo');
-    } finally {
-        hideLoading();
-    }
-}
-
     // ==================== PERSONAJES ====================
     document.getElementById('btn-save').onclick = async () => {
         const name = document.getElementById('ai-name').value.trim();
         if(!name) return alert("❌ Ponle nombre al personaje");
         
-        if(!selectedModelId) return alert("❌ Selecciona un modelo");
+        if (!supabase) {
+            alert('⚠️ Supabase no está configurado. Revisa las credenciales en el código.');
+            return;
+        }
 
         try {
             showLoading();
-            const response = await fetch(`${BACKEND_URL}/api/personajes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: name,
-                    persona: document.getElementById('ai-persona').value,
-                    model_id: selectedModelId,
-                    voice: document.getElementById('voice-select').value,
-                    rate: document.getElementById('voice-rate').value,
-                    pitch: document.getElementById('voice-pitch').value,
-                    image_base64: tempImage || null
-                })
-            });
-
-            const data = await response.json();
             
-            if (data.success) {
-                alert('✅ Personaje guardado exitosamente');
-                document.getElementById('ai-name').value = '';
-                document.getElementById('ai-persona').value = '';
-                tempImage = '';
-                document.getElementById('avatar-preview').style.display = 'none';
-                document.getElementById('preview-placeholder').style.display = 'block';
-                switchView('view-list');
+            const personajeData = {
+                name: name,
+                persona: document.getElementById('ai-persona').value,
+                voice: document.getElementById('voice-select').value,
+                rate: parseFloat(document.getElementById('voice-rate').value),
+                pitch: parseFloat(document.getElementById('voice-pitch').value),
+                image_base64: tempImage || null,
+                model_id: null,
+                model_name: null
+            };
+            
+            if (editingBotId) {
+                // ACTUALIZAR personaje existente
+                const { data, error } = await supabase
+                    .from('personajes')
+                    .update(personajeData)
+                    .eq('id', editingBotId)
+                    .select();
+
+                if (error) throw error;
+                alert('✅ Personaje actualizado exitosamente');
             } else {
-                alert('❌ Error al guardar personaje: ' + (data.error || 'Desconocido'));
+                // CREAR nuevo personaje
+                const { data, error } = await supabase
+                    .from('personajes')
+                    .insert([personajeData])
+                    .select();
+
+                if (error) throw error;
+                alert('✅ Personaje creado exitosamente');
             }
+            
+            // Limpiar formulario
+            limpiarFormulario();
+            switchView('view-list');
+            
         } catch (error) {
             console.error('Error guardando personaje:', error);
-            alert('❌ Error al guardar personaje. Verifica tu conexión.');
+            alert('❌ Error al guardar personaje: ' + error.message);
         } finally {
             hideLoading();
         }
     };
 
-  function renderBots() {
-    const container = document.getElementById('bot-list-container');
-    container.innerHTML = '';
-    
-    if (bots.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
-        return;
+    function limpiarFormulario() {
+        document.getElementById('ai-name').value = '';
+        document.getElementById('ai-persona').value = '';
+        document.getElementById('voice-rate').value = '1.0';
+        document.getElementById('val-rate').innerText = '1.0';
+        document.getElementById('voice-pitch').value = '0.667';
+        document.getElementById('val-pitch').innerText = '0.667';
+        tempImage = '';
+        document.getElementById('avatar-preview').style.display = 'none';
+        document.getElementById('preview-placeholder').style.display = 'block';
+        editingBotId = null;
+        document.getElementById('btn-save-text').innerText = 'Crear Avatar';
+        document.querySelector('#view-config .header h2').innerText = 'Crear Personaje';
     }
-    
-    bots.forEach(bot => {
-        const el = document.createElement('div');
-        el.className = 'bot-item';
-        
-        // Usar image_url de Supabase o image_base64 como fallback
-        const imgSrc = bot.image_url || bot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
-        
-        // Crear el contenedor izquierdo
-        const leftDiv = document.createElement('div');
-        leftDiv.className = 'bot-item-left';
-        leftDiv.onclick = () => openChat(bot.id);
-        
-        leftDiv.innerHTML = `
-            <img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
-            <div class="bot-info-mini">
-                <h4>${bot.name}</h4>
-                <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
-            </div>
-        `;
-        
-        // Crear botón eliminar
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-delete';
-        delBtn.innerHTML = '<i data-lucide="trash-2" size="18"></i>';
-        delBtn.onclick = (e) => deleteBot(e, bot.id);
-        
-        el.appendChild(leftDiv);
-        el.appendChild(delBtn);
-        container.appendChild(el);
-    });
-    lucide.createIcons();
-}
 
-async function deleteBot(e, id) {
-    e.stopPropagation();
-    if (!confirm('¿Eliminar este personaje?')) return;
-    try {
-        showLoading();
-        const response = await fetch(`${BACKEND_URL}/api/personajes/${id}`, {  // ✅ CON PARÉNTESIS
-            method: 'DELETE'
-        });
-        const data = await response.json();
+    function renderBots() {
+        const container = document.getElementById('bot-list-container');
+        container.innerHTML = '';
         
-        if (data.success) {
+        if (bots.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
+            return;
+        }
+        
+        bots.forEach(bot => {
+            const el = document.createElement('div');
+            el.className = 'bot-item';
+            
+            const imgSrc = bot.image_url || bot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
+            
+            const leftDiv = document.createElement('div');
+            leftDiv.className = 'bot-item-left';
+            leftDiv.onclick = () => openChat(bot.id);
+            
+            leftDiv.innerHTML = `
+                <img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
+                <div class="bot-info-mini">
+                    <h4>${bot.name}</h4>
+                    <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
+                </div>
+            `;
+            
+            // Contenedor de acciones
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'bot-item-actions';
+            
+            // Botón editar
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-edit';
+            editBtn.innerHTML = '<i data-lucide="edit-2" size="18"></i>';
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                editarBot(bot.id);
+            };
+            
+            // Botón eliminar
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-delete';
+            delBtn.innerHTML = '<i data-lucide="trash-2" size="18"></i>';
+            delBtn.onclick = (e) => deleteBot(e, bot.id);
+            
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(delBtn);
+            
+            el.appendChild(leftDiv);
+            el.appendChild(actionsDiv);
+            container.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    function editarBot(botId) {
+        const bot = bots.find(b => b.id === botId);
+        if (!bot) return;
+        
+        editingBotId = botId;
+        
+        // Cargar datos en el formulario
+        document.getElementById('ai-name').value = bot.name;
+        document.getElementById('ai-persona').value = bot.persona || '';
+        document.getElementById('voice-select').value = bot.voice;
+        document.getElementById('voice-rate').value = bot.rate || 1.0;
+        document.getElementById('val-rate').innerText = bot.rate || 1.0;
+        document.getElementById('voice-pitch').value = bot.pitch || 0.667;
+        document.getElementById('val-pitch').innerText = bot.pitch || 0.667;
+        
+        // Cargar imagen si existe
+        if (bot.image_url || bot.image_base64) {
+            const imgSrc = bot.image_url || bot.image_base64;
+            document.getElementById('avatar-preview').src = imgSrc;
+            document.getElementById('avatar-preview').style.display = 'block';
+            document.getElementById('preview-placeholder').style.display = 'none';
+            tempImage = bot.image_base64 || '';
+        }
+        
+        // Cambiar textos
+        document.getElementById('btn-save-text').innerText = 'Actualizar';
+        document.querySelector('#view-config .header h2').innerText = 'Editar Personaje';
+        
+        switchView('view-config');
+    }
+
+    async function deleteBot(e, id) {
+        e.stopPropagation();
+        if (!confirm('¿Eliminar este personaje?')) return;
+        
+        try {
+            showLoading();
+            const { error } = await supabase
+                .from('personajes')
+                .delete()
+                .eq('id', id);
+            
+            if (error) throw error;
+            
             await cargarPersonajes();
             alert('✅ Personaje eliminado exitosamente');
-        } else {
-            alert('❌ Error al eliminar personaje');
+        } catch (error) {
+            console.error('Error eliminando personaje:', error);
+            alert('❌ Error al eliminar personaje: ' + error.message);
+        } finally {
+            hideLoading();
         }
-    } catch (error) {
-        console.error('Error eliminando personaje:', error);
-        alert('❌ Error al eliminar personaje');
-    } finally {
-        hideLoading();
     }
-}
 
-function openChat(botId) {
-    currentBot = bots.find(b => b.id === botId);
-    if (!currentBot) {
-        console.error('Bot no encontrado:', botId);
-        return;
+    function openChat(botId) {
+        currentBot = bots.find(b => b.id === botId);
+        if (!currentBot) {
+            console.error('Bot no encontrado:', botId);
+            return;
+        }
+        
+        const imgSrc = currentBot.image_url || currentBot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
+        
+        document.getElementById('display-name').innerText = currentBot.name;
+        document.getElementById('chat-avatar').src = imgSrc;
+        document.getElementById('messages').innerHTML = "";
+        
+        // Establecer imagen de fondo en el chat
+        const messagesContainer = document.getElementById('messages');
+        messagesContainer.style.setProperty('--chat-bg-image', `url(${imgSrc})`);
+        const styleEl = document.querySelector('#messages::before') || document.createElement('style');
+        if (!styleEl.id) {
+            styleEl.id = 'chat-bg-style';
+            document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = `#messages::before { background-image: url("${imgSrc}") !important; }`;
+        
+        // Resetear índice de modelo para nueva conversación
+        currentModelIndex = Math.floor(Math.random() * AI_MODELS.length);
+        
+        switchView('view-chat');
     }
-    
-    const imgSrc = currentBot.image_url || currentBot.image_base64 || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
-    
-    document.getElementById('display-name').innerText = currentBot.name;
-    document.getElementById('chat-avatar').src = imgSrc;
-    document.getElementById('messages').innerHTML = "";
-    switchView('view-chat');
-}
 
     // ==================== VOZ ====================
     async function hablar(texto, params = null) {
@@ -830,6 +814,9 @@ function openChat(botId) {
                     noise_scale: pitch
                 })
             });
+            
+            if (!response.ok) throw new Error('Error en servidor Piper');
+            
             const data = await response.json();
             const audioData = atob(data.audio);
             const arrayBuffer = new Uint8Array(audioData.length);
@@ -840,7 +827,7 @@ function openChat(botId) {
             await audio.play();
         } catch (err) { 
             console.error("Error Piper:", err); 
-            alert('❌ Error al generar audio');
+            alert('❌ Error al generar audio: ' + err.message);
         }
     }
 
@@ -857,86 +844,190 @@ function openChat(botId) {
         hablar(texto);
     };
 
-    // ==================== CHAT ====================
-  async function enviar() {
-    const input = document.getElementById('user-input');
-    const texto = input.value.trim();
-    if (!texto) return;
+    // ==================== CHAT CON ROTACIÓN DE IAs ====================
+    
+    // 🔄 Función para obtener el siguiente modelo (rotación con failover)
+    function getNextModel() {
+        const model = AI_MODELS[currentModelIndex];
+        currentModelIndex = (currentModelIndex + 1) % AI_MODELS.length;
+        return model;
+    }
 
-    const messagesContainer = document.getElementById('messages');
-    const userDiv = document.createElement('div');
-    userDiv.className = 'msg user-msg'; 
-    userDiv.innerText = texto;
-    messagesContainer.appendChild(userDiv);
-    input.value = "";
+    // 🤖 Llamada a IA con formato OpenAI
+    async function llamarIAOpenAI(model, systemPrompt, userMessage) {
+        const response = await fetch(model.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${model.api_key}`
+            },
+            body: JSON.stringify({
+                model: model.model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
 
-    const iaDiv = document.createElement('div');
-    iaDiv.className = 'msg ia-msg'; 
-    iaDiv.innerText = "⏳ Pensando...";
-    messagesContainer.appendChild(iaDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    try {
-        // Obtener configuración del modelo
-        const modelConfig = [...defaultModels, ...customModels].find(m => m.id === currentBot.model_id);
-        
-        if (!modelConfig) {
-            throw new Error("Modelo no encontrado");
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
 
-        const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}. 
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
 
+    // 🤖 Llamada a IA con formato Gemini
+    async function llamarIAGemini(model, systemPrompt, userMessage) {
+        const response = await fetch(`${model.url}?key=${model.api_key}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `${systemPrompt}\n\nUsuario: ${userMessage}`
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 500
+                }
+            })
+        });
 
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+    }
+
+    // 🤖 Llamada a IA Custom (Gemma Local u otros)
+    async function llamarIACustom(model, systemPrompt, userMessage) {
+        const response = await fetch(`${model.url}/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: `${systemPrompt}\n\nUsuario: ${userMessage}`,
+                max_tokens: 500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.generated_text || data.response || data.text;
+    }
+
+    // 🔄 Función principal con failover automático
+    async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
+        let ultimoError = null;
+        
+        for (let i = 0; i < intentosMaximos; i++) {
+            const model = getNextModel();
+            
+            try {
+                console.log(`🤖 Intentando con: ${model.name}`);
+                
+                let respuesta;
+                if (model.type === 'gemini') {
+                    respuesta = await llamarIAGemini(model, systemPrompt, userMessage);
+                } else if (model.type === 'custom') {
+                    respuesta = await llamarIACustom(model, systemPrompt, userMessage);
+                } else {
+                    respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
+                }
+                
+                console.log(`✅ Respuesta exitosa de: ${model.name}`);
+                return respuesta;
+                
+            } catch (error) {
+                console.error(`❌ Error con ${model.name}:`, error.message);
+                ultimoError = error;
+                
+                // Si no es el último intento, continuar con el siguiente modelo
+                if (i < intentosMaximos - 1) {
+                    console.log(`🔄 Rotando a siguiente modelo...`);
+                    continue;
+                }
+            }
+        }
+        
+        // Si todos los modelos fallaron
+        throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError.message}`);
+    }
+
+    // 💬 Función de envío de mensaje
+    async function enviar() {
+        const input = document.getElementById('user-input');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        const messagesContainer = document.getElementById('messages');
+        const userDiv = document.createElement('div');
+        userDiv.className = 'msg user-msg'; 
+        userDiv.innerText = texto;
+        messagesContainer.appendChild(userDiv);
+        input.value = "";
+
+        const iaDiv = document.createElement('div');
+        iaDiv.className = 'msg ia-msg'; 
+        iaDiv.innerText = "⏳ Pensando...";
+        messagesContainer.appendChild(iaDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try {
+            const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
 
 NO HACER:
-- NO uses asteriscos (*) para  o sonidos (nada en la conversación)
+- NO uses asteriscos (*) para acciones o sonidos (nada en la conversación)
 - No uses emojis en ninguna conversación por ningún motivo
-- Evita usar ASTERICOS o EMOJIS a toda costa
-- No responder mas de 3 Párrafos 
+- Evita usar ASTERISCOS o EMOJIS a toda costa
+- No responder más de 3 párrafos
 
 SÍ HACER:
-- Palabras en efectos de sonido como (gluck, slurp), repitelas de 3 a 5 veces , siempre con ... (Tres puntos suspensivos entre una y otra)
-- Ejemplo: (Slup...slurp...slup...), (gluck... gluck... gluck...)
+- Palabras en efectos de sonido como (gluck, slurp), repítelas de 3 a 5 veces, siempre con ... (Tres puntos suspensivos entre una y otra)
+- Ejemplo: (Slurp...slurp...slurp...), (gluck...gluck...gluck...)
 - Habla de forma natural y conversacional, sin marcadores de acción
 - Responde en español (o el idioma que te hable el usuario)
 - Sé coherente con tu personalidad establecida
 - Usa acentos, pausas y reglas gramaticales adecuadas
 - Acciones o actos, escríbelos en manuscrita y comillas
-- Para formatos donde representas habla, hazlo en mayúsculas 
-- Utiliza gestos o acciones expresivas, como uso de signos de admiración (cuando la escena lo amerite)`;
-        
-        
-        const response = await fetch(`${BACKEND_URL}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model_id: currentBot.model_id,
-                message: texto,  // ✅ CAMBIO: "message" singular en lugar de "messages"
-                system_prompt: systemPrompt  // ✅ Enviar el system prompt por separado
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            const resTxt = data.response;
-            iaDiv.innerText = resTxt;
+- Para formatos donde representas habla, hazlo en mayúsculas
+- Utiliza gestos o acciones expresivas, como uso de signos de admiración (cuando la escena lo amerite)
+- Sé breve y conciso en tus respuestas (máximo 3 párrafos)
+- Mantén coherencia con tu personalidad en toda la conversación`;
             
-            // Hablar con la voz configurada del bot
-            hablar(resTxt, {
+            // 🔄 Llamar con rotación automática y failover
+            const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
+            
+            iaDiv.innerText = respuesta;
+            
+            // 🎤 Hablar con la voz configurada del bot
+            hablar(respuesta, {
                 voice: currentBot.voice,
                 rate: currentBot.rate,
                 pitch: currentBot.pitch
             });
-        } else {
-            iaDiv.innerText = "❌ Error: " + (data.error || 'Error desconocido');
+            
+        } catch (error) { 
+            iaDiv.innerText = "❌ Error: " + error.message;
+            console.error('Error en chat:', error);
         }
-    } catch (e) { 
-        iaDiv.innerText = "❌ Error: " + e.message; 
-        console.error('Error en chat:', e);
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
 
     document.getElementById('btn-enviar').onclick = enviar;
     document.getElementById('user-input').onkeypress = (e) => { 
@@ -946,22 +1037,21 @@ SÍ HACER:
     // ==================== INICIALIZACIÓN ====================
     window.onload = async () => { 
         lucide.createIcons();
-        await cargarModelos();
+        
+        if (!initSupabase()) {
+            console.error('⚠️ No se pudo inicializar Supabase');
+            return;
+        }
+        
         await cargarPersonajes();
         
         if(bots.length > 0) {
             switchView('view-list'); 
         }
+        
+        console.log('✅ Aplicación lista');
+        console.log(`🤖 ${AI_MODELS.length} modelos de IA disponibles`);
     };
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
