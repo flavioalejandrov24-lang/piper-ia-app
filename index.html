@@ -455,6 +455,14 @@
 
     const AI_MODELS = [
         {
+            id: 'gemma-hf',
+            name: 'Gemma HuggingFace',
+            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
+            api_key: '',
+            model: 'gemma',
+            type: 'huggingface'
+        },
+        {
             id: 'groq-llama',
             name: 'Groq Llama 3.3',
             url: 'https://api.groq.com/openai/v1/chat/completions',
@@ -469,14 +477,6 @@
             api_key: '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',
             model: 'allenai/olmo-2-1124-13b-instruct',
             type: 'openai'
-        },
-        {
-            id: 'gemma-hf',
-            name: 'Gemma HuggingFace',
-            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
-            api_key: '',
-            model: 'gemma',
-            type: 'huggingface'
         }
     ];
 
@@ -836,6 +836,8 @@ NO HACER:
 - No responder más de 3 párrafos
 
 SÍ HACER:
+- Palabras en efectos de sonido como (gluck, slurp), repítelas de 3 a 5 veces con ... entre ellas
+- Ejemplo: (Slurp...slurp...slurp...)
 - Habla de forma natural y conversacional
 - Responde en español
 - Sé coherente con tu personalidad
