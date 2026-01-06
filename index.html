@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configura tu IA con Piper</title>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -106,7 +105,7 @@
             background: #f8fafc; padding: 10px; border-radius: 10px; 
             display: flex; align-items: center; gap: 12px; margin-top: 4px;
         }
-        .range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; }
+        .range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; border-radius: 5px; }
         .range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; }
         .range-group input::-moz-range-thumb { width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; border: none; }
         .range-val { min-width: 40px; font-size: 0.85rem; color: var(--primary); font-weight: 800; text-align: right; }
@@ -320,11 +319,11 @@
         </div>
         <div class="scroll-content">
             <div class="field" style="text-align: center;">
-                <div id="avatar-preview-container" onclick="document.getElementById('ai-image').click()">
+                <div id="avatar-preview-container">
                     <span id="preview-placeholder">Toca para subir foto</span>
                     <img id="avatar-preview" src="" alt="Vista previa">
                 </div>
-                <input type="file" id="ai-image" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                <input type="file" id="ai-image" accept="image/*" style="display: none;">
             </div>
             
             <div class="field">
@@ -362,7 +361,7 @@
             <div class="field">
                 <label>Velocidad (Rate):</label>
                 <div class="range-group">
-                    <input type="range" id="voice-rate" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('val-rate').innerText = this.value">
+                    <input type="range" id="voice-rate" min="0.5" max="2.0" step="0.1" value="1.0">
                     <span class="range-val" id="val-rate">1.0</span>
                 </div>
             </div>
@@ -370,7 +369,7 @@
             <div class="field">
                 <label>Tono (Noise Scale):</label>
                 <div class="range-group">
-                    <input type="range" id="voice-pitch" min="0.1" max="1.5" step="0.05" value="0.667" oninput="document.getElementById('val-pitch').innerText = this.value">
+                    <input type="range" id="voice-pitch" min="0.1" max="1.5" step="0.05" value="0.667">
                     <span class="range-val" id="val-pitch">0.667</span>
                 </div>
             </div>
@@ -385,7 +384,7 @@
                 <button id="btn-save" class="btn btn-primary">
                     <i data-lucide="check-circle"></i> <span id="btn-save-text">Crear Avatar</span>
                 </button>
-                <button id="btn-download" class="btn btn-secondary" onclick="descargarWav()">
+                <button id="btn-download" class="btn btn-secondary">
                     <i data-lucide="file-audio"></i> .wav
                 </button>
             </div>
@@ -394,10 +393,10 @@
         </div>
         
         <div class="nav-footer">
-          <div class="nav-item active" onclick="switchView('view-config')">
+          <div class="nav-item active" data-view="view-config">
             <i data-lucide="plus"></i><span>Nuevo</span>
           </div>
-          <div class="nav-item" onclick="switchView('view-list')">
+          <div class="nav-item" data-view="view-list">
             <i data-lucide="users"></i><span>Personajes</span>
           </div>
         </div>
@@ -406,7 +405,7 @@
     <!-- VIEW 2: BOTS LIST -->
     <div id="view-list" class="view">
         <div class="header">
-            <button class="back-btn" onclick="switchView('view-config')"><i data-lucide="arrow-left"></i></button>
+            <button class="back-btn" data-view="view-config"><i data-lucide="arrow-left"></i></button>
             <i data-lucide="users"></i>
             <h2>Mis Personajes</h2>
         </div>
@@ -414,10 +413,10 @@
             <div id="bot-list-container" class="bot-list-grid"></div>
         </div>
         <div class="nav-footer">
-          <div class="nav-item" onclick="switchView('view-config')">
+          <div class="nav-item" data-view="view-config">
             <i data-lucide="plus"></i><span>Nuevo</span>
           </div>
-          <div class="nav-item active" onclick="switchView('view-list')">
+          <div class="nav-item active" data-view="view-list">
             <i data-lucide="users"></i><span>Personajes</span>
           </div>
         </div>
@@ -426,32 +425,70 @@
     <!-- VIEW 3: CHAT -->
     <div id="view-chat" class="view">
         <div class="header">
-            <button class="back-btn" onclick="switchView('view-list')"><i data-lucide="arrow-left"></i></button>
+            <button class="back-btn" data-view="view-list"><i data-lucide="arrow-left"></i></button>
             <img id="chat-avatar" src="" class="bot-img-mini" style="width: 38px; height: 38px;">
             <div>
                 <h2 id="display-name" style="font-size: 1rem; line-height: 1;">IA Chat</h2>
                 <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
             </div>
         </div>
-     <div id="messages"></div>
-<div class="chat-input-box">
-    <input type="text" id="user-input" placeholder="Escribe un mensaje...">
-    <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;">
-        <i data-lucide="send"></i>
-    </button>
+        <div id="messages"></div>
+        <div class="chat-input-box">
+            <input type="text" id="user-input" placeholder="Escribe un mensaje...">
+            <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;">
+                <i data-lucide="send"></i>
+            </button>
+        </div>
+    </div>
+
 </div>
 
 <script>
+(function() {
+    'use strict';
+
     // ==================== ⚙️ CONFIGURACIÓN ====================
     const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";
-
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
-    const AI_MODELS = [ /* ... tus modelos ... */ ];
+    const AI_MODELS = [
+        {
+            id: 'f4a1726c-bf13-4043-ad2e-80fbbfdcee47',
+            name: 'Groq Llama 3.3',
+            url: 'https://api.groq.com/openai/v1/chat/completions',
+            api_key: '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',
+            model: 'llama-3.3-70b-versatile',
+            type: 'openai'
+        },
+        {
+            id: '2c4c1ce6-a3ec-4250-950d-abcc2cb104dc',
+            name: 'Gemini 2.5 Flash',
+            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+            api_key: 'AIzaSyCi90bHv0AMNRhO9lifcrHiSv5HNuTY9iA',
+            model: 'gemini-2.0-flash-exp',
+            type: 'gemini'
+        },
+        {
+            id: '2038e354-8818-4dee-bfdf-98ab9bd3ac8a',
+            name: 'Olmos IA',
+            url: 'https://openrouter.ai/api/v1/chat/completions',
+            api_key: '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',
+            model: 'allenai/olmo-2-1124-13b-instruct',
+            type: 'openai'
+        },
+        {
+            id: '672b0388-9831-4b64-999f-1c38a3864b7a',
+            name: 'Gemma Local',
+            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
+            api_key: 'No-key',
+            model: 'gemma',
+            type: 'custom'
+        }
+    ];
 
     // ==================== VARIABLES GLOBALES ====================
-    let supabase = null;
+    let dbClient = null;
     let bots = [];
     let currentBot = null;
     let tempImage = "";
@@ -460,64 +497,19 @@
     let editingBotId = null;
 
     // ==================== INICIALIZACIÓN ====================
-    function initSupabase() {
+    function initDatabase() {
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-            console.error('❌ ERROR: Configuración de Supabase incompleta');
+            console.error('❌ Configuración de Supabase incompleta');
             alert('⚠️ Configuración incompleta de Supabase');
             return false;
         }
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase inicializado correctamente');
+        
+        dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Base de datos inicializada');
         return true;
     }
 
-    // ==================== FUNCIONES DE CARGA ====================
-    async function cargarPersonajes() {
-        if (!supabase) {
-            console.error('Supabase no está inicializado');
-            return;
-        }
-        try {
-            showLoading();
-            const { data, error } = await supabase
-                .from('personajes')
-                .select('*')
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            bots = data || [];
-            renderBots();
-            console.log(`✅ ${bots.length} personajes cargados`);
-        } catch (error) {
-            console.error('Error cargando personajes:', error);
-            alert('❌ Error al cargar personajes: ' + error.message);
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // ==================== FUNCIONES DE VISTAS ====================
-    function switchView(viewId) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        
-        if (viewId === 'view-list') {
-            cargarPersonajes();
-        }
-        if (viewId === 'view-config' && editingBotId === null) {
-            limpiarFormulario();
-        }
-
-        // 👇 Este bloque estaba fuera, ahora está dentro de la función
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        if (viewId === 'view-config') {
-            document.querySelectorAll('.nav-item')[0].classList.add('active');
-        } else if (viewId === 'view-list') {
-            document.querySelectorAll('.nav-item')[1].classList.add('active');
-        }
-
-        lucide.createIcons();
-    }
-
+    // ==================== LOADING ====================
     function showLoading() {
         document.getElementById('loading-overlay').classList.add('show');
     }
@@ -526,85 +518,50 @@
         document.getElementById('loading-overlay').classList.remove('show');
     }
 
-    // ==================== IMAGEN ====================
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('avatar-preview');
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                document.getElementById('preview-placeholder').style.display = 'none';
-                tempImage = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
+    // ==================== VISTAS ====================
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        
+        if(viewId === 'view-list') {
+            cargarPersonajes();
         }
+        
+        if(viewId === 'view-config' && editingBotId === null) {
+            limpiarFormulario();
+        }
+        
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll(`[data-view="${viewId}"]`).forEach(item => item.classList.add('active'));
+        
+        lucide.createIcons();
     }
 
     // ==================== PERSONAJES ====================
-    document.getElementById('btn-save').onclick = async () => {
-        const name = document.getElementById('ai-name').value.trim();
-        if (!name) return alert("❌ Ponle nombre al personaje");
-        
-        if (!supabase) {
-            alert('⚠️ Supabase no está configurado. Revisa las credenciales en el código.');
+    async function cargarPersonajes() {
+        if (!dbClient) {
+            console.error('Base de datos no inicializada');
             return;
         }
-
+        
         try {
             showLoading();
-            const personajeData = {
-                name: name,
-                persona: document.getElementById('ai-persona').value,
-                voice: document.getElementById('voice-select').value,
-                rate: parseFloat(document.getElementById('voice-rate').value),
-                pitch: parseFloat(document.getElementById('voice-pitch').value),
-                image_base64: tempImage || null,
-                model_id: null,
-                model_name: null
-            };
+            const { data, error } = await dbClient
+                .from('personajes')
+                .select('*')
+                .order('created_at', { ascending: false });
             
-            if (editingBotId) {
-                const { data, error } = await supabase
-                    .from('personajes')
-                    .update(personajeData)
-                    .eq('id', editingBotId)
-                    .select();
-                if (error) throw error;
-                alert('✅ Personaje actualizado exitosamente');
-            } else {
-                const { data, error } = await supabase
-                    .from('personajes')
-                    .insert([personajeData])
-                    .select();
-                if (error) throw error;
-                alert('✅ Personaje creado exitosamente');
-            }
+            if (error) throw error;
             
-            limpiarFormulario();
-            switchView('view-list');
+            bots = data || [];
+            renderBots();
+            console.log(`✅ ${bots.length} personajes cargados`);
         } catch (error) {
-            console.error('Error guardando personaje:', error);
-            alert('❌ Error al guardar personaje: ' + error.message);
+            console.error('Error cargando personajes:', error);
+            alert('❌ Error: ' + error.message);
         } finally {
             hideLoading();
         }
-    };
-
-
-    function limpiarFormulario() {
-        document.getElementById('ai-name').value = '';
-        document.getElementById('ai-persona').value = '';
-        document.getElementById('voice-rate').value = '1.0';
-        document.getElementById('val-rate').innerText = '1.0';
-        document.getElementById('voice-pitch').value = '0.667';
-        document.getElementById('val-pitch').innerText = '0.667';
-        tempImage = '';
-        document.getElementById('avatar-preview').style.display = 'none';
-        document.getElementById('preview-placeholder').style.display = 'block';
-        editingBotId = null;
-        document.getElementById('btn-save-text').innerText = 'Crear Avatar';
-        document.querySelector('#view-config .header h2').innerText = 'Crear Personaje';
     }
 
     function renderBots() {
@@ -634,11 +591,9 @@
                 </div>
             `;
             
-            // Contenedor de acciones
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'bot-item-actions';
             
-            // Botón editar
             const editBtn = document.createElement('button');
             editBtn.className = 'btn-edit';
             editBtn.innerHTML = '<i data-lucide="edit-2" size="18"></i>';
@@ -647,7 +602,6 @@
                 editarBot(bot.id);
             };
             
-            // Botón eliminar
             const delBtn = document.createElement('button');
             delBtn.className = 'btn-delete';
             delBtn.innerHTML = '<i data-lucide="trash-2" size="18"></i>';
@@ -663,13 +617,80 @@
         lucide.createIcons();
     }
 
+    async function guardarPersonaje() {
+        const name = document.getElementById('ai-name').value.trim();
+        if(!name) return alert("❌ Ponle nombre al personaje");
+        
+        if (!dbClient) {
+            alert('⚠️ Base de datos no configurada');
+            return;
+        }
+
+        try {
+            showLoading();
+            
+            const personajeData = {
+                name: name,
+                persona: document.getElementById('ai-persona').value,
+                voice: document.getElementById('voice-select').value,
+                rate: parseFloat(document.getElementById('voice-rate').value),
+                pitch: parseFloat(document.getElementById('voice-pitch').value),
+                image_base64: tempImage || null,
+                model_id: null,
+                model_name: null
+            };
+            
+            if (editingBotId) {
+                const { data, error } = await dbClient
+                    .from('personajes')
+                    .update(personajeData)
+                    .eq('id', editingBotId)
+                    .select();
+
+                if (error) throw error;
+                alert('✅ Personaje actualizado');
+            } else {
+                const { data, error } = await dbClient
+                    .from('personajes')
+                    .insert([personajeData])
+                    .select();
+
+                if (error) throw error;
+                alert('✅ Personaje creado');
+            }
+            
+            limpiarFormulario();
+            switchView('view-list');
+            
+        } catch (error) {
+            console.error('Error guardando:', error);
+            alert('❌ Error: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('ai-name').value = '';
+        document.getElementById('ai-persona').value = '';
+        document.getElementById('voice-rate').value = '1.0';
+        document.getElementById('val-rate').innerText = '1.0';
+        document.getElementById('voice-pitch').value = '0.667';
+        document.getElementById('val-pitch').innerText = '0.667';
+        tempImage = '';
+        document.getElementById('avatar-preview').style.display = 'none';
+        document.getElementById('preview-placeholder').style.display = 'block';
+        editingBotId = null;
+        document.getElementById('btn-save-text').innerText = 'Crear Avatar';
+        document.querySelector('#view-config .header h2').innerText = 'Crear Personaje';
+    }
+
     function editarBot(botId) {
         const bot = bots.find(b => b.id === botId);
         if (!bot) return;
         
         editingBotId = botId;
         
-        // Cargar datos en el formulario
         document.getElementById('ai-name').value = bot.name;
         document.getElementById('ai-persona').value = bot.persona || '';
         document.getElementById('voice-select').value = bot.voice;
@@ -678,7 +699,6 @@
         document.getElementById('voice-pitch').value = bot.pitch || 0.667;
         document.getElementById('val-pitch').innerText = bot.pitch || 0.667;
         
-        // Cargar imagen si existe
         if (bot.image_url || bot.image_base64) {
             const imgSrc = bot.image_url || bot.image_base64;
             document.getElementById('avatar-preview').src = imgSrc;
@@ -687,7 +707,6 @@
             tempImage = bot.image_base64 || '';
         }
         
-        // Cambiar textos
         document.getElementById('btn-save-text').innerText = 'Actualizar';
         document.querySelector('#view-config .header h2').innerText = 'Editar Personaje';
         
@@ -700,7 +719,7 @@
         
         try {
             showLoading();
-            const { error } = await supabase
+            const { error } = await dbClient
                 .from('personajes')
                 .delete()
                 .eq('id', id);
@@ -708,15 +727,16 @@
             if (error) throw error;
             
             await cargarPersonajes();
-            alert('✅ Personaje eliminado exitosamente');
+            alert('✅ Personaje eliminado');
         } catch (error) {
-            console.error('Error eliminando personaje:', error);
-            alert('❌ Error al eliminar personaje: ' + error.message);
+            console.error('Error eliminando:', error);
+            alert('❌ Error: ' + error.message);
         } finally {
             hideLoading();
         }
     }
 
+    // ==================== CHAT ====================
     function openChat(botId) {
         currentBot = bots.find(b => b.id === botId);
         if (!currentBot) {
@@ -730,20 +750,169 @@
         document.getElementById('chat-avatar').src = imgSrc;
         document.getElementById('messages').innerHTML = "";
         
-        // Establecer imagen de fondo en el chat
-        const messagesContainer = document.getElementById('messages');
-        messagesContainer.style.setProperty('--chat-bg-image', `url(${imgSrc})`);
-        const styleEl = document.querySelector('#messages::before') || document.createElement('style');
+        const styleEl = document.getElementById('chat-bg-style') || document.createElement('style');
         if (!styleEl.id) {
             styleEl.id = 'chat-bg-style';
             document.head.appendChild(styleEl);
         }
         styleEl.textContent = `#messages::before { background-image: url("${imgSrc}") !important; }`;
         
-        // Resetear índice de modelo para nueva conversación
         currentModelIndex = Math.floor(Math.random() * AI_MODELS.length);
         
         switchView('view-chat');
+    }
+
+    async function enviar() {
+        const input = document.getElementById('user-input');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        const messagesContainer = document.getElementById('messages');
+        const userDiv = document.createElement('div');
+        userDiv.className = 'msg user-msg'; 
+        userDiv.innerText = texto;
+        messagesContainer.appendChild(userDiv);
+        input.value = "";
+
+        const iaDiv = document.createElement('div');
+        iaDiv.className = 'msg ia-msg'; 
+        iaDiv.innerText = "⏳ Pensando...";
+        messagesContainer.appendChild(iaDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try {
+            const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
+
+NO HACER:
+- NO uses asteriscos (*) para acciones o sonidos
+- No uses emojis en ninguna conversación
+- No responder más de 3 párrafos
+
+SÍ HACER:
+- Palabras en efectos de sonido como (gluck, slurp), repítelas de 3 a 5 veces con ... entre ellas
+- Ejemplo: (Slurp...slurp...slurp...)
+- Habla de forma natural y conversacional
+- Responde en español
+- Sé coherente con tu personalidad
+- Sé breve y conciso (máximo 3 párrafos)`;
+            
+            const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
+            
+            iaDiv.innerText = respuesta;
+            
+            hablar(respuesta, {
+                voice: currentBot.voice,
+                rate: currentBot.rate,
+                pitch: currentBot.pitch
+            });
+            
+        } catch (error) { 
+            iaDiv.innerText = "❌ Error: " + error.message;
+            console.error('Error en chat:', error);
+        }
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // ==================== IA ====================
+    function getNextModel() {
+        const model = AI_MODELS[currentModelIndex];
+        currentModelIndex = (currentModelIndex + 1) % AI_MODELS.length;
+        return model;
+    }
+
+    async function llamarIAOpenAI(model, systemPrompt, userMessage) {
+        const response = await fetch(model.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${model.api_key}`
+            },
+            body: JSON.stringify({
+                model: model.model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        if (!response.ok) throw new Error(`Error ${response.status}`);
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+
+    async function llamarIAGemini(model, systemPrompt, userMessage) {
+        const response = await fetch(`${model.url}?key=${model.api_key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: `${systemPrompt}\n\nUsuario: ${userMessage}` }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 500
+                }
+            })
+        });
+
+        if (!response.ok) throw new Error(`Error ${response.status}`);
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+    }
+
+    async function llamarIACustom(model, systemPrompt, userMessage) {
+        const response = await fetch(`${model.url}/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: `${systemPrompt}\n\nUsuario: ${userMessage}`,
+                max_tokens: 500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) throw new Error(`Error ${response.status}`);
+        const data = await response.json();
+        return data.generated_text || data.response || data.text;
+    }
+
+    async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
+        let ultimoError = null;
+        
+        for (let i = 0; i < intentosMaximos; i++) {
+            const model = getNextModel();
+            
+            try {
+                console.log(`🤖 Intentando: ${model.name}`);
+                
+                let respuesta;
+                if (model.type === 'gemini') {
+                    respuesta = await llamarIAGemini(model, systemPrompt, userMessage);
+                } else if (model.type === 'custom') {
+                    respuesta = await llamarIACustom(model, systemPrompt, userMessage);
+                } else {
+                    respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
+                }
+                
+                console.log(`✅ Éxito: ${model.name}`);
+                return respuesta;
+                
+            } catch (error) {
+                console.error(`❌ Falló ${model.name}:`, error.message);
+                ultimoError = error;
+                
+                if (i < intentosMaximos - 1) {
+                    console.log('🔄 Rotando...');
+                    continue;
+                }
+            }
+        }
+        
+        throw new Error(`Todos fallaron. Último error: ${ultimoError.message}`);
     }
 
     // ==================== VOZ ====================
@@ -777,219 +946,77 @@
             await audio.play();
         } catch (err) { 
             console.error("Error Piper:", err); 
-            alert('❌ Error al generar audio: ' + err.message);
+            alert('❌ Error de audio: ' + err.message);
         }
     }
 
+    function probarVoz() {
+        const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
+        hablar(texto);
+    }
+
     function descargarWav() {
-        if (!lastAudioBlob) return alert("⚠️ Primero genera un audio probando la voz");
+        if (!lastAudioBlob) return alert("⚠️ Primero prueba la voz");
         const a = document.createElement('a');
         a.href = URL.createObjectURL(lastAudioBlob);
         a.download = `piper_audio_${Date.now()}.wav`;
         a.click();
     }
 
-    document.getElementById('btn-test').onclick = () => {
-        const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
-        hablar(texto);
-    };
-
-    // ==================== CHAT CON ROTACIÓN DE IAs ====================
-    
-    // 🔄 Función para obtener el siguiente modelo (rotación con failover)
-    function getNextModel() {
-        const model = AI_MODELS[currentModelIndex];
-        currentModelIndex = (currentModelIndex + 1) % AI_MODELS.length;
-        return model;
-    }
-
-    // 🤖 Llamada a IA con formato OpenAI
-    async function llamarIAOpenAI(model, systemPrompt, userMessage) {
-        const response = await fetch(model.url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${model.api_key}`
-            },
-            body: JSON.stringify({
-                model: model.model,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+    // ==================== IMAGEN ====================
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('avatar-preview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('preview-placeholder').style.display = 'none';
+                tempImage = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
         }
-
-        const data = await response.json();
-        return data.choices[0].message.content;
     }
 
-    // 🤖 Llamada a IA con formato Gemini
-    async function llamarIAGemini(model, systemPrompt, userMessage) {
-        const response = await fetch(`${model.url}?key=${model.api_key}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `${systemPrompt}\n\nUsuario: ${userMessage}`
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 500
-                }
-            })
-        });
+    // ==================== EVENT LISTENERS ====================
+    document.getElementById('avatar-preview-container').addEventListener('click', () => {
+        document.getElementById('ai-image').click();
+    });
 
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
+    document.getElementById('ai-image').addEventListener('change', function() {
+        previewImage(this);
+    });
 
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-    }
+    document.getElementById('voice-rate').addEventListener('input', function() {
+        document.getElementById('val-rate').innerText = this.value;
+    });
 
-    // 🤖 Llamada a IA Custom (Gemma Local u otros)
-    async function llamarIACustom(model, systemPrompt, userMessage) {
-        const response = await fetch(`${model.url}/generate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                prompt: `${systemPrompt}\n\nUsuario: ${userMessage}`,
-                max_tokens: 500,
-                temperature: 0.7
-            })
-        });
+    document.getElementById('voice-pitch').addEventListener('input', function() {
+        document.getElementById('val-pitch').innerText = this.value;
+    });
 
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
+    document.getElementById('btn-test').addEventListener('click', probarVoz);
+    document.getElementById('btn-save').addEventListener('click', guardarPersonaje);
+    document.getElementById('btn-download').addEventListener('click', descargarWav);
+    document.getElementById('btn-enviar').addEventListener('click', enviar);
 
-        const data = await response.json();
-        return data.generated_text || data.response || data.text;
-    }
-
-    // 🔄 Función principal con failover automático
-    async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
-        let ultimoError = null;
-        
-        for (let i = 0; i < intentosMaximos; i++) {
-            const model = getNextModel();
-            
-            try {
-                console.log(`🤖 Intentando con: ${model.name}`);
-                
-                let respuesta;
-                if (model.type === 'gemini') {
-                    respuesta = await llamarIAGemini(model, systemPrompt, userMessage);
-                } else if (model.type === 'custom') {
-                    respuesta = await llamarIACustom(model, systemPrompt, userMessage);
-                } else {
-                    respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
-                }
-                
-                console.log(`✅ Respuesta exitosa de: ${model.name}`);
-                return respuesta;
-                
-            } catch (error) {
-                console.error(`❌ Error con ${model.name}:`, error.message);
-                ultimoError = error;
-                
-                // Si no es el último intento, continuar con el siguiente modelo
-                if (i < intentosMaximos - 1) {
-                    console.log(`🔄 Rotando a siguiente modelo...`);
-                    continue;
-                }
-            }
-        }
-        
-        // Si todos los modelos fallaron
-        throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError.message}`);
-    }
-
-    // 💬 Función de envío de mensaje
-    async function enviar() {
-        const input = document.getElementById('user-input');
-        const texto = input.value.trim();
-        if (!texto) return;
-
-        const messagesContainer = document.getElementById('messages');
-        const userDiv = document.createElement('div');
-        userDiv.className = 'msg user-msg'; 
-        userDiv.innerText = texto;
-        messagesContainer.appendChild(userDiv);
-        input.value = "";
-
-        const iaDiv = document.createElement('div');
-        iaDiv.className = 'msg ia-msg'; 
-        iaDiv.innerText = "⏳ Pensando...";
-        messagesContainer.appendChild(iaDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        try {
-            const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
-
-NO HACER:
-- NO uses asteriscos (*) para acciones o sonidos (nada en la conversación)
-- No uses emojis en ninguna conversación por ningún motivo
-- Evita usar ASTERISCOS o EMOJIS a toda costa
-- No responder más de 3 párrafos
-
-SÍ HACER:
-- Palabras en efectos de sonido como (gluck, slurp), repítelas de 3 a 5 veces, siempre con ... (Tres puntos suspensivos entre una y otra)
-- Ejemplo: (Slurp...slurp...slurp...), (gluck...gluck...gluck...)
-- Habla de forma natural y conversacional, sin marcadores de acción
-- Responde en español (o el idioma que te hable el usuario)
-- Sé coherente con tu personalidad establecida
-- Usa acentos, pausas y reglas gramaticales adecuadas
-- Acciones o actos, escríbelos en manuscrita y comillas
-- Para formatos donde representas habla, hazlo en mayúsculas
-- Utiliza gestos o acciones expresivas, como uso de signos de admiración (cuando la escena lo amerite)
-- Sé breve y conciso en tus respuestas (máximo 3 párrafos)
-- Mantén coherencia con tu personalidad en toda la conversación`;
-            
-            // 🔄 Llamar con rotación automática y failover
-            const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
-            
-            iaDiv.innerText = respuesta;
-            
-            // 🎤 Hablar con la voz configurada del bot
-            hablar(respuesta, {
-                voice: currentBot.voice,
-                rate: currentBot.rate,
-                pitch: currentBot.pitch
-            });
-            
-        } catch (error) { 
-            iaDiv.innerText = "❌ Error: " + error.message;
-            console.error('Error en chat:', error);
-        }
-        
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    document.getElementById('btn-enviar').onclick = enviar;
-    document.getElementById('user-input').onkeypress = (e) => { 
+    document.getElementById('user-input').addEventListener('keypress', (e) => { 
         if(e.key === 'Enter') enviar(); 
-    };
-    
+    });
+
+    document.querySelectorAll('.back-btn, .nav-item').forEach(element => {
+        element.addEventListener('click', function() {
+            const viewId = this.getAttribute('data-view');
+            if (viewId) switchView(viewId);
+        });
+    });
+
     // ==================== INICIALIZACIÓN ====================
-    window.onload = async () => { 
+    window.addEventListener('load', async () => { 
         lucide.createIcons();
         
-        if (!initSupabase()) {
-            console.error('⚠️ No se pudo inicializar Supabase');
+        if (!initDatabase()) {
+            console.error('⚠️ No se pudo inicializar la base de datos');
             return;
         }
         
@@ -1000,14 +1027,10 @@ SÍ HACER:
         }
         
         console.log('✅ Aplicación lista');
-        console.log(`🤖 ${AI_MODELS.length} modelos de IA disponibles`);
-    };
+        console.log(`🤖 ${AI_MODELS.length} modelos disponibles`);
+    });
+
+})();
 </script>
 </body>
 </html>
-
-
-
-
-
-
