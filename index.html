@@ -439,16 +439,20 @@
             <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;"><i data-lucide="send"></i></button>
         </div>
     </div>
-
 </div>
 
-<script>
-    // ==================== ⚙️ CONFIGURACIÓN - INGRESA AQUÍ TUS CREDENCIALES ====================
     
-    // 🎤 PIPER TTS Server (HuggingFace)
+<script>
+    // ==================== ⚙️ CONFIGURACIÓN ====================
+    
+    // 🔑 SUPABASE
+    const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";
+    
+    // 🎤 PIPER TTS Server
     const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
 
-    // 🤖 CONFIGURACIÓN DE IAs (Ya están precargadas con tus datos)
+    // 🤖 CONFIGURACIÓN DE IAs
     const AI_MODELS = [
         {
             id: 'f4a1726c-bf13-4043-ad2e-80fbbfdcee47',
@@ -456,7 +460,7 @@
             url: 'https://api.groq.com/openai/v1/chat/completions',
             api_key: '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',
             model: 'llama-3.3-70b-versatile',
-            type: 'openai' // Compatible con OpenAI API
+            type: 'openai'
         },
         {
             id: '2c4c1ce6-a3ec-4250-950d-abcc2cb104dc',
@@ -464,7 +468,7 @@
             url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
             api_key: 'AIzaSyCi90bHv0AMNRhO9lifcrHiSv5HNuTY9iA',
             model: 'gemini-2.0-flash-exp',
-            type: 'gemini' // Formato especial de Gemini
+            type: 'gemini'
         },
         {
             id: '2038e354-8818-4dee-bfdf-98ab9bd3ac8a',
@@ -480,7 +484,7 @@
             url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
             api_key: 'No-key',
             model: 'gemma',
-            type: 'custom' // Servidor personalizado
+            type: 'custom'
         }
     ];
 
@@ -490,16 +494,14 @@
     let currentBot = null;
     let tempImage = "";
     let lastAudioBlob = null;
-    let currentModelIndex = 0; // Para rotación de IAs
-    let editingBotId = null; // Para saber si estamos editando
+    let currentModelIndex = 0;
+    let editingBotId = null;
 
     // ==================== INICIALIZACIÓN ====================
     function initSupabase() {
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || 
-            SUPABASE_URL === "https://bmnmfpxorpkksczdewnp.supabase.co" || 
-            SUPABASE_ANON_KEY === "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY") {
-            console.error('❌ ERROR: Debes configurar SUPABASE_URL y SUPABASE_ANON_KEY en el código');
-            alert('⚠️ Configuración incompleta: Debes agregar tus credenciales de Supabase en el código (líneas 342-343)');
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+            console.error('❌ ERROR: Configuración de Supabase incompleta');
+            alert('⚠️ Configuración incompleta de Supabase');
             return false;
         }
         
@@ -1051,5 +1053,6 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
 
 
