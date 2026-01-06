@@ -433,15 +433,14 @@
                 <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
             </div>
         </div>
-        <div id="messages"></div>
-        <div class="chat-input-box">
-            <input type="text" id="user-input" placeholder="Escribe un mensaje...">
-            <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;"><i data-lucide="send"></i></button>
-        </div>
-    </div>
+     <div id="messages"></div>
+<div class="chat-input-box">
+    <input type="text" id="user-input" placeholder="Escribe un mensaje...">
+    <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;">
+        <i data-lucide="send"></i>
+    </button>
 </div>
 
-    
 <script>
     // ==================== ⚙️ CONFIGURACIÓN ====================
     
@@ -489,7 +488,7 @@
     ];
 
     // ==================== VARIABLES GLOBALES ====================
-    let supabase = null;
+    let supabase = null;   // 👈 Declarada solo una vez
     let bots = [];
     let currentBot = null;
     let tempImage = "";
@@ -505,6 +504,7 @@
             return false;
         }
         
+        // 👇 Aquí ya no usamos "let" ni "const", solo asignamos
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase inicializado correctamente');
         return true;
@@ -549,6 +549,7 @@
         if(viewId === 'view-config' && editingBotId === null) {
             limpiarFormulario();
         }
+    }
         
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
         if(viewId === 'view-config') {
@@ -1053,6 +1054,7 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
 
 
 
