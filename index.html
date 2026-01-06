@@ -469,6 +469,14 @@
             api_key: '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',
             model: 'allenai/olmo-2-1124-13b-instruct',
             type: 'openai'
+        },
+        {
+            id: 'gemma-hf',
+            name: 'Gemma HuggingFace',
+            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
+            api_key: '',
+            model: 'gemma',
+            type: 'huggingface'
         }
     ];
 
@@ -883,6 +891,24 @@ SÍ HACER:
         return data.choices[0].message.content;
     }
 
+    async function llamarIAHuggingFace(model, systemPrompt, userMessage) {
+        const prompt = `${systemPrompt}\n\nUsuario: ${userMessage}\nAsistente:`;
+        
+        const response = await fetch(`${model.url}/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: prompt,
+                max_tokens: 500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) throw new Error(`Error ${response.status}`);
+        const data = await response.json();
+        return data.response || data.generated_text || data.text || data.output;
+    }
+
     async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
         let ultimoError = null;
         
@@ -892,7 +918,12 @@ SÍ HACER:
             try {
                 console.log(`🤖 Intentando: ${model.name}`);
                 
-                const respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
+                let respuesta;
+                if (model.type === 'huggingface') {
+                    respuesta = await llamarIAHuggingFace(model, systemPrompt, userMessage);
+                } else {
+                    respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
+                }
                 
                 console.log(`✅ Éxito con: ${model.name}`);
                 return respuesta;
