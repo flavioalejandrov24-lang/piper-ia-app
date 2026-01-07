@@ -12,7 +12,7 @@
             --primary-light: #8e63cf;
             --success: #25d366;
             --bg-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-bg: linear-gradient(135deg, rgba(255, 182, 193, 0.75), rgba(255, 105, 180, 0.65));
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
@@ -69,25 +69,34 @@
 
         .header {
             padding: 18px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
             display: flex;
             align-items: center;
             gap: 12px;
-           /* --- NUEVO FONDO DEGRADADO VERTICAL CON TRANSPARENCIA --- */
-            background: linear-gradient(
-            to bottom, 
-            rgba(147, 51, 234, 0.8), /* Púrpura con 80% de opacidad */
-            rgba(255, 255, 255, 0.5);  /* Blanco con 50% de opacidad */
-            );
+            background: linear-gradient(to bottom, rgba(147, 51, 234, 0.85), rgba(126, 34, 206, 0.65));
             flex-shrink: 0;
         }
         
-        .header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+        .header h2 { 
+            margin: 0; 
+            font-size: 1.25rem; 
+            font-weight: 900; 
+            color: #ffffff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 0.5px;
+        }
         
         .back-btn { 
-            background: #f1f5f9; border: none; cursor: pointer; padding: 8px; 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted); transition: all 0.2s;
+            background: rgba(241, 245, 249, 0.9); 
+            border: none; 
+            cursor: pointer; 
+            padding: 8px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            color: var(--text-muted); 
+            transition: all 0.2s;
         }
         .back-btn:hover { background: var(--border); color: var(--primary); }
 
@@ -103,13 +112,18 @@
         input, textarea, select { 
             width: 100%; padding: 12px; border: 1.5px solid var(--border); 
             border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
         }
         input:focus, textarea:focus, select:focus { border-color: var(--primary); }
 
         .range-group { 
-            background: #f8fafc; padding: 10px; border-radius: 10px; 
-            display: flex; align-items: center; gap: 12px; margin-top: 4px;
+            background: rgba(248, 250, 252, 0.8); 
+            padding: 10px; 
+            border-radius: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            margin-top: 4px;
         }
         .range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; border-radius: 5px; }
         .range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; }
@@ -120,8 +134,8 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            margin-top: 15px;
+            margin-bottom: 10px;
         }
 
         .btn {
@@ -151,7 +165,7 @@
             border: 3px dashed var(--border); border-radius: 50%; 
             display: flex; align-items: center; justify-content: center; 
             overflow: hidden; cursor: pointer; position: relative;
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
         }
         #avatar-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
         #preview-placeholder { color: var(--text-muted); text-align: center; font-size: 0.75rem; padding: 10px; }
@@ -159,8 +173,8 @@
         .bot-list-grid { display: flex; flex-direction: column; gap: 12px; }
         
         .bot-item {
-            background: rgba(255, 255, 255, 0.08); /* El 0.7 es 70% de opacidad */
-            border: 1.5px solid var(--border); 
+            background: rgba(255, 255, 255, 0.5);
+            border: 1.5px solid rgba(255, 255, 255, 0.6); 
             border-radius: 15px;
             padding: 12px; 
             display: flex; 
@@ -170,7 +184,7 @@
             transition: 0.2s; 
             position: relative;
         }
-        .bot-item:hover { border-color: var(--primary); background: #fdfaff; }
+        .bot-item:hover { border-color: var(--primary); background: rgba(255, 240, 255, 0.8); }
         
         .bot-item-left {
             display: flex;
@@ -230,7 +244,7 @@
             display: flex; 
             flex-direction: column; 
             gap: 12px; 
-            background: #f8fafc;
+            background: rgba(248, 250, 252, 0.7);
             position: relative;
         }
         
@@ -258,11 +272,46 @@
             z-index: 1;
         }
         .user-msg { align-self: flex-end; background: #0084ff; color: white; border-bottom-right-radius: 4px; }
-        .ia-msg { align-self: flex-start; background: #e2e8f0; color: var(--text-main); border-bottom-left-radius: 4px; }
+        .ia-msg { 
+            align-self: flex-start; 
+            background: #e2e8f0; 
+            color: var(--text-main); 
+            border-bottom-left-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .ia-msg-content {
+            flex: 1;
+        }
+        
+        .btn-replay-audio {
+            background: rgba(118, 75, 162, 0.1);
+            border: 1px solid rgba(118, 75, 162, 0.3);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            align-self: flex-start;
+            transition: all 0.2s;
+        }
+        .btn-replay-audio:hover {
+            background: rgba(118, 75, 162, 0.2);
+            transform: scale(1.05);
+        }
 
         .chat-input-box {
-            padding: 15px; border-top: 1px solid var(--border);
-            display: flex; gap: 10px; background: #fff;
+            padding: 15px; 
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            display: flex; 
+            gap: 10px; 
+            background: linear-gradient(135deg, rgba(255, 192, 203, 0.6), rgba(255, 182, 193, 0.5));
+            backdrop-filter: blur(5px);
         }
 
         hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
@@ -270,10 +319,11 @@
         
         .nav-footer {
           padding: 10px 20px;
-          border-top: 1px solid var(--border);
+          border-top: 1px solid rgba(255, 255, 255, 0.4);
           display: flex;
           justify-content: space-around;
-          background: #fff;
+          background: linear-gradient(135deg, rgba(255, 192, 203, 0.7), rgba(255, 182, 193, 0.6));
+          backdrop-filter: blur(5px);
           flex-shrink: 0;
         }
         .nav-item {
@@ -320,7 +370,7 @@
     <!-- VIEW 1: CONFIGURATION -->
     <div id="view-config" class="view active">
         <div class="header">
-            <i data-lucide="plus-circle"></i>
+            <i data-lucide="plus-circle" style="color: white;"></i>
             <h2>Crear Personaje</h2>
         </div>
         <div class="scroll-content">
@@ -395,7 +445,7 @@
                 </button>
             </div>
             
-            <div style="height: 40px;"></div>
+            <div style="height: 10px;"></div>
         </div>
         
         <div class="nav-footer">
@@ -412,7 +462,7 @@
     <div id="view-list" class="view">
         <div class="header">
             <button class="back-btn" data-view="view-config"><i data-lucide="arrow-left"></i></button>
-            <i data-lucide="users"></i>
+            <i data-lucide="users" style="color: white;"></i>
             <h2>Mis Personajes</h2>
         </div>
         <div class="scroll-content">
@@ -815,6 +865,24 @@
         switchView('view-chat');
     }
 
+    function formatearRespuesta(texto) {
+        // Reemplazar texto entre paréntesis por formato cursiva con puntos suspensivos
+        texto = texto.replace(/\(([^)]+)\)/g, '<em>($1)...</em>');
+        
+        // Detectar diálogos (texto entre comillas o líneas que parecen diálogo)
+        // Convertir a mayúsculas y negritas
+        texto = texto.replace(/"([^"]+)"/g, '<strong>$1</strong>');
+        
+        // Para frases que empiezan con mayúscula y terminan en puntuación típica de diálogo
+        texto = texto.replace(/([A-ZÑÁÉÍÓÚ][^.!?]*[.!?])/g, (match) => {
+            // Si ya está dentro de em o strong, no modificar
+            if (match.includes('<em>') || match.includes('<strong>')) return match;
+            return `<strong>${match.toUpperCase()}</strong>`;
+        });
+        
+        return texto;
+    }
+
     async function enviar() {
         const input = document.getElementById('user-input');
         const texto = input.value.trim();
@@ -829,18 +897,17 @@
 
         const iaDiv = document.createElement('div');
         iaDiv.className = 'msg ia-msg'; 
-        iaDiv.innerText = "⏳ Pensando...";
+        iaDiv.innerHTML = '<div class="ia-msg-content">⏳ Pensando...</div>';
         messagesContainer.appendChild(iaDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         try {
             const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
 
-
 FORMATO VISUAL (Markdown):
-- Diálogos: Escribe todo lo que sea hablado en MAYUSCULAS.
-- Acciones/Escenarios: Escribe las descripciones entre parentesis y en cursiva, seguida  de  tres puntos(...).
-- Haz un uso correcto de signos de puntuacion, separaciones y parrafos.
+- Diálogos: Todo lo que hables debe estar entre comillas "TEXTO AQUÍ".
+- Acciones/Escenarios: Escribe las descripciones entre paréntesis (descripción aquí).
+- Haz un uso correcto de signos de puntuación, separaciones y párrafos.
 
 RESTRICCIONES PARA AUDIO (TTS):
 - PROHIBIDO el uso de asteriscos simples (*) para acciones o sonidos.
@@ -860,7 +927,26 @@ SÍ HACER:
             
             const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
             
-            iaDiv.innerText = respuesta;
+            // Formatear respuesta
+            const respuestaFormateada = formatearRespuesta(respuesta);
+            
+            // Crear contenido con botón de replay
+            iaDiv.innerHTML = `
+                <div class="ia-msg-content">${respuestaFormateada}</div>
+                <button class="btn-replay-audio" onclick="window.replayLastAudio()">
+                    <i data-lucide="volume-2" size="14"></i> Reproducir
+                </button>
+            `;
+            
+            lucide.createIcons();
+            
+            // Guardar audio para replay
+            window.lastResponseText = respuesta;
+            window.lastResponseVoice = {
+                voice: currentBot.voice_type,
+                rate: currentBot.rate,
+                pitch: currentBot.pitch
+            };
             
             hablar(respuesta, {
                 voice: currentBot.voice_type,
@@ -869,12 +955,19 @@ SÍ HACER:
             });
             
         } catch (error) { 
-            iaDiv.innerText = "❌ Error: " + error.message;
+            iaDiv.innerHTML = '<div class="ia-msg-content">❌ Error: ' + error.message + '</div>';
             console.error('Error en chat:', error);
         }
         
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
+
+    // Función global para replay
+    window.replayLastAudio = function() {
+        if (window.lastResponseText && window.lastResponseVoice) {
+            hablar(window.lastResponseText, window.lastResponseVoice);
+        }
+    };
 
     // ==================== IA ====================
     function getNextModel() {
@@ -907,7 +1000,6 @@ SÍ HACER:
     }
 
     async function llamarIAHuggingFace(model, systemPrompt, userMessage) {
-        // Tu servidor usa GET con parámetro 'mensaje' y el system prompt ya está incluido en el servidor
         const fullMessage = `${systemPrompt}\n\n${userMessage}`;
         const encodedMessage = encodeURIComponent(fullMessage);
         
@@ -956,6 +1048,14 @@ SÍ HACER:
     // ==================== VOZ ====================
     async function hablar(texto, params = null) {
         if (!texto) return;
+        
+        // Limpiar texto para TTS: remover HTML y formato especial
+        const textoLimpio = texto
+            .replace(/<[^>]*>/g, '') // Remover HTML
+            .replace(/\([^)]*\)/g, '') // Remover acciones entre paréntesis
+            .replace(/\*/g, '') // Remover asteriscos
+            .trim();
+        
         const voiceModel = params?.voice || currentBot?.voice_type || document.getElementById('voice-select').value;
         const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
         const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
@@ -965,7 +1065,7 @@ SÍ HACER:
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    text: texto, 
+                    text: textoLimpio, 
                     model: voiceModel, 
                     length_scale: 1 / rate, 
                     noise_scale: pitch
@@ -1076,11 +1176,3 @@ SÍ HACER:
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
