@@ -136,7 +136,7 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-top: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 30px;
         }
 
         .btn {
@@ -272,15 +272,20 @@
             position: relative;
             z-index: 1;
         }
-        .user-msg { align-self: flex-end; background: #0084ff; color: white; border-bottom-right-radius: 4px; }
+        .user-msg { align-self: flex-end; 
+                   opacity: 0.8;
+                   background: rgba(0, 132, 255, 0.9);
+                   color: white; 
+                   border-bottom-right-radius: 4px; }
         .ia-msg { 
             align-self: flex-start; 
-            background: #e2e8f0; 
+            background: rgba(226, 232, 240, 0.9); 
             color: var(--text-main); 
             border-bottom-left-radius: 4px;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            opacity: 0.8;
         }
         
         .ia-msg-content {
@@ -513,32 +518,23 @@
     const STORAGE_BUCKET = "personajes-avatars";
 
     const AI_MODELS = [
-        {
-            id: 'gemma-hf',
-            name: 'Gemma HuggingFace',
-            url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
-            api_key: '',
-            model: 'gemma',
-            type: 'huggingface'
-        },
-        {
-            id: 'groq-llama',
-            name: 'Groq Llama 3.3',
-            url: 'https://api.groq.com/openai/v1/chat/completions',
-            api_key: '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',
-            model: 'llama-3.3-70b-versatile',
-            type: 'openai'
-        },
-        {
-            id: 'olmos-ia',
-            name: 'Olmos IA',
-            url: 'https://openrouter.ai/api/v1/chat/completions',
-            api_key: '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',
-            model: 'allenai/olmo-2-1124-13b-instruct',
-            type: 'openai'
-        }
-    ];
-
+    {
+        id: 'groq-llama',  // 👈 PRIMERO - MÁS RÁPIDO
+        name: 'Groq Llama 3.3',
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        api_key: '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',
+        model: 'llama-3.3-70b-versatile',
+        type: 'openai'
+    },
+    {
+        id: 'gemma-hf',  // 👈 ÚLTIMO - RESPALDO
+        name: 'Gemma HuggingFace',
+        url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
+        api_key: '',
+        model: 'gemma',
+        type: 'huggingface'
+    }
+];
     // ==================== VARIABLES GLOBALES ====================
     let dbClient = null;
     let bots = [];
@@ -1179,6 +1175,7 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
 
 
 
