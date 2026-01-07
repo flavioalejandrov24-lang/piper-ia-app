@@ -238,18 +238,25 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        #messages { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
-            background: rgba(248, 250, 252, 0.7);
-            position: relative;
-        }
+        #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(248, 250, 252, 0.7);
+    position: relative;
+    /* 👇 AGREGA ESTAS PROPIEDADES DIRECTAMENTE */
+    background-image: var(--chat-bg-image);  /* Variable dinámica */
+    background-size: cover;
+    background-position: center;
+    background-repeat: repeat-y;  /* Se repite verticalmente */
+    background-blend-mode: overlay;
+    opacity: 0.45;
+}
         
-   #messages::before {
+   /*#messages::before {
     content: '';
     position: absolute;
     top: 0;
@@ -258,12 +265,13 @@
     bottom: 0;
     background-size: cover;
     background-position: center;
-    background-attachment: fixed;  /* 👈 AGREGA ESTA LÍNEA */
-    background-repeat: no-repeat;  /* 👈 AGREGA ESTA LÍNEA */
+    background-attachment: fixed; 
+    background-repeat: no-repeat; 
     opacity: 0.45;
     z-index: 0;
     pointer-events: none;
 }
+        */
         
         .msg { 
             max-width: 80%; 
@@ -859,8 +867,13 @@
             styleEl.id = 'chat-bg-style';
             document.head.appendChild(styleEl);
         }
-        styleEl.textContent = `#messages::before { background-image: url("${imgSrc}") !important; }`;
         
+ styleEl.textContent = `
+    #messages { 
+        background-image: url("${imgSrc}") !important;
+        background-blend-mode: overlay;
+    }
+`;   
         currentModelIndex = Math.floor(Math.random() * AI_MODELS.length);
         
         switchView('view-chat');
@@ -1177,6 +1190,7 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
 
 
 
