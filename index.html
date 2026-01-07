@@ -830,18 +830,26 @@
         try {
             const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
 
+
+FORMATO VISUAL (Markdown):
+- Diálogos: Escribe todo lo que sea hablado en negritas usando el doble asterisco: **texto hablado aquí**.
+- Acciones/Escenarios: Escribe las descripciones entre comillas y en cursiva: " _el personaje se sienta y observa el horizonte_ ".
+
+RESTRICCIONES PARA AUDIO (TTS):
+- PROHIBIDO el uso de asteriscos simples (*) para acciones o sonidos.
+- PROHIBIDO el uso de emojis.
+- PROHIBIDO incluir onomatopeyas o sonidos escritos (ej: gluck, slurp, suspiro) que el sistema de voz pueda leer literalmente.
+
 NO HACER:
 - NO uses asteriscos (*) para acciones o sonidos
 - No uses emojis en ninguna conversación
 - No responder más de 3 párrafos
 
 SÍ HACER:
-- Palabras en efectos de sonido como (gluck, slurp), repítelas de 3 a 5 veces con ... entre ellas
-- Ejemplo: (Slurp...slurp...slurp...)
 - Habla de forma natural y conversacional
 - Responde en español
 - Sé coherente con tu personalidad
-- Sé breve y conciso (máximo 3 párrafos)`;
+- Mantén tus respuestas en una longitud aproximada de 70 palabras`;
             
             const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
             
@@ -1061,3 +1069,4 @@ SÍ HACER:
 </script>
 </body>
 </html>
+
