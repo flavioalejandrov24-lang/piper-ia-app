@@ -100,6 +100,16 @@ scrollbar-width: thin;
 }
 .field { margin-bottom: 15px; }
 label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-main); }
+/* 👇 Transparencia en inputs FUERA del formulario inicial */
+#view-chat input,
+#view-chat textarea,
+#view-list input,
+#view-list textarea,
+#view-list select,
+#view-chat .range-group input,
+#view-list .range-group input {
+background: rgba(255, 255, 255, 0.85) !important;
+}
 input, textarea, select {
 width: 100%; padding: 12px; border: 1.5px solid var(--border);
 border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
@@ -138,6 +148,7 @@ align-items: center;
 justify-content: center;
 gap: 6px;
 transition: all 0.2s;
+background: rgba(255, 255, 255, 0.85); /* transparencia en botones fuera del form */
 }
 .btn-test { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
 .btn-test:hover { background: #bbf7d0; }
@@ -150,8 +161,12 @@ transition: all 0.2s;
 #avatar-preview-container {
 width: 110px; height: 110px; margin: 0 auto 15px;
 border: 3px dashed var(--border); border-radius: 50%;
-display: flex; align-items: center; justify-content: center;
-overflow: hidden; cursor: pointer; position: relative;
+display: flex;
+align-items: center;
+justify-content: center;
+overflow: hidden;
+cursor: pointer;
+position: relative;
 background: rgba(255, 255, 255, 0.9);
 }
 #avatar-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
@@ -477,6 +492,10 @@ let tempImageFile = null;
 let lastAudioBlob = null;
 let currentModelIndex = 0;
 let editingBotId = null;
+// 👇 NUEVO: mapa de audios por mensaje
+window.audioCache = {};
+window.currentAudio = null;
+
 // ==================== INICIALIZACIÓN ====================
 function initDatabase() {
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -748,6 +767,42 @@ return `<strong>${match.toUpperCase()}</strong>`;
 });
 return texto;
 }
+// 👇 NUEVA función para generar audio SOLO al clic
+async function generarAudioParaMensaje(texto, params, messageId) {
+if (window.audioCache[messageId]) return; // ya existe
+
+const textoLimpio = texto
+.replace(/<[^>]*>/g, '')
+.replace(/\([^)]*\)/g, '')
+.replace(/\*/g, '')
+.trim();
+
+const voiceModel = params?.voice || currentBot?.voice_type || document.getElementById('voice-select').value;
+const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
+const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
+
+try {
+const response = await fetch(PIPER_SERVER, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+text: textoLimpio,
+model: voiceModel,
+length_scale: 1 / rate,
+noise_scale: pitch
+})
+});
+if (!response.ok) throw new Error('Error en servidor Piper');
+const data = await response.json();
+const audioData = atob(data.audio);
+const arrayBuffer = new Uint8Array(audioData.length);
+for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
+window.audioCache[messageId] = new Blob([arrayBuffer], { type: 'audio/wav' });
+} catch (err) {
+console.error("Error generando audio:", err);
+}
+}
+
 async function enviar() {
 const input = document.getElementById('user-input');
 const texto = input.value.trim();
@@ -758,11 +813,13 @@ userDiv.className = 'msg user-msg';
 userDiv.innerText = texto;
 messagesContainer.appendChild(userDiv);
 input.value = "";
+
 const iaDiv = document.createElement('div');
 iaDiv.className = 'msg ia-msg';
 iaDiv.innerHTML = '<div class="ia-msg-content">⏳ Pensando...</div>';
 messagesContainer.appendChild(iaDiv);
 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
 try {
 const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
 FORMATO VISUAL (Markdown):
@@ -782,37 +839,93 @@ SÍ HACER:
 - Responde en español
 - Sé coherente con tu personalidad
 - Mantén tus respuestas en una longitud aproximada de 70 palabras`;
+
 const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
 const respuestaFormateada = formatearRespuesta(respuesta);
-iaDiv.innerHTML = `
-<div class="ia-msg-content">${respuestaFormateada}</div>
-<button class="btn-replay-audio" onclick="window.replayLastAudio()">
-<i data-lucide="volume-2" size="14"></i> Reproducir
-</button>
-`;
-lucide.createIcons();
+
+// 👇 Generar ID único para el mensaje
+const messageId = 'msg_' + Date.now();
+
+// Guardar en ventana global para replay
 window.lastResponseText = respuesta;
 window.lastResponseVoice = {
 voice: currentBot.voice_type,
 rate: currentBot.rate,
 pitch: currentBot.pitch
 };
-hablar(respuesta, {
-voice: currentBot.voice_type,
-rate: currentBot.rate,
-pitch: currentBot.pitch
-});
+
+// Mostrar texto inmediatamente, SIN audio
+iaDiv.innerHTML = `
+<div class="ia-msg-content">${respuestaFormateada}</div>
+<button class="btn-replay-audio" data-message-id="${messageId}" onclick="window.toggleAudio(this)">
+<i data-lucide="volume-2" size="14"></i> Reproducir
+</button>
+`;
+lucide.createIcons();
+
+// 👇 Generar audio en segundo plano (sin bloquear)
+generarAudioParaMensaje(respuesta, window.lastResponseVoice, messageId);
+
 } catch (error) {
 iaDiv.innerHTML = '<div class="ia-msg-content">❌ Error: ' + error.message + '</div>';
 console.error('Error en chat:', error);
 }
 messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
-window.replayLastAudio = function() {
-if (window.lastResponseText && window.lastResponseVoice) {
-hablar(window.lastResponseText, window.lastResponseVoice);
+
+// 👇 NUEVA función toggle
+window.toggleAudio = function(btn) {
+const messageId = btn.getAttribute('data-message-id');
+const icon = btn.querySelector('i');
+const blob = window.audioCache[messageId];
+
+if (!blob) {
+btn.innerHTML = '<i data-lucide="loader" size="14"></i> Cargando...';
+lucide.createIcons();
+setTimeout(() => {
+if (window.audioCache[messageId]) {
+window.toggleAudio(btn);
+} else {
+btn.innerHTML = '<i data-lucide="volume-2" size="14"></i> Error';
+lucide.createIcons();
 }
+}, 500);
+return;
+}
+
+// Si ya hay un audio sonando, detenerlo
+if (window.currentAudio) {
+window.currentAudio.pause();
+}
+
+const audio = new Audio(URL.createObjectURL(blob));
+window.currentAudio = audio;
+
+// Cambiar a "Pausar"
+btn.innerHTML = '<i data-lucide="pause" size="14"></i> Pausar';
+lucide.createIcons();
+
+audio.play();
+
+audio.onended = () => {
+btn.innerHTML = '<i data-lucide="volume-2" size="14"></i> Reproducir';
+lucide.createIcons();
+window.currentAudio = null;
 };
+
+// Permitir pausar
+btn.onclick = () => {
+if (audio.paused) {
+audio.play();
+btn.innerHTML = '<i data-lucide="pause" size="14"></i> Pausar';
+} else {
+audio.pause();
+btn.innerHTML = '<i data-lucide="volume-2" size="14"></i> Reproducir';
+}
+lucide.createIcons();
+};
+};
+
 // ==================== IA ====================
 function getNextModel() {
 const model = AI_MODELS[currentModelIndex];
@@ -877,16 +990,19 @@ continue;
 throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError.message}`);
 }
 // ==================== VOZ ====================
-async function hablar(texto, params = null) {
-if (!texto) return;
+function probarVoz() {
+const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
+hablarDirecto(texto);
+}
+async function hablarDirecto(texto) {
 const textoLimpio = texto
 .replace(/<[^>]*>/g, '')
 .replace(/\([^)]*\)/g, '')
 .replace(/\*/g, '')
 .trim();
-const voiceModel = params?.voice || currentBot?.voice_type || document.getElementById('voice-select').value;
-const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
-const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
+const voiceModel = document.getElementById('voice-select').value;
+const rate = parseFloat(document.getElementById('voice-rate').value);
+const pitch = parseFloat(document.getElementById('voice-pitch').value);
 try {
 const response = await fetch(PIPER_SERVER, {
 method: 'POST',
@@ -903,17 +1019,13 @@ const data = await response.json();
 const audioData = atob(data.audio);
 const arrayBuffer = new Uint8Array(audioData.length);
 for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
-lastAudioBlob = new Blob([arrayBuffer], { type: 'audio/wav' });
-const audio = new Audio(URL.createObjectURL(lastAudioBlob));
+const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+const audio = new Audio(URL.createObjectURL(blob));
 await audio.play();
 } catch (err) {
 console.error("Error Piper:", err);
 alert('❌ Error de audio: ' + err.message);
 }
-}
-function probarVoz() {
-const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
-hablar(texto);
 }
 function descargarWav() {
 if (!lastAudioBlob) return alert("⚠️ Primero prueba la voz");
@@ -978,7 +1090,7 @@ switchView('view-list');
 console.log('✅ Aplicación lista');
 console.log(`🤖 ${AI_MODELS.length} modelos disponibles`);
 console.log(`📦 Bucket: ${STORAGE_BUCKET}`);
-});
+})();
 })();
 </script>
 </body>
