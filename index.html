@@ -1,1205 +1,985 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configura tu IA con Piper</title>
-    <link rel="icon" type="image/png" href="Avatarsicon.png">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --primary: #764ba2;
-            --primary-light: #8e63cf;
-            --success: #25d366;
-            --bg-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            --card-bg: linear-gradient(135deg, rgba(255, 182, 193, 0.75), rgba(255, 105, 180, 0.65));
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        
-        body { 
-            background: var(--bg-gradient);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh;
-            padding: 15px;
-        }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .app-container {
-            width: 100%;
-            max-width: 450px;
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-            height: 90vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .view {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-            animation: fadeIn 0.3s ease;
-        }
-        .view.active { display: flex; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header {
-            padding: 18px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: linear-gradient(to bottom, rgba(147, 51, 234, 0.25), rgba(126, 34, 206, 0.65));
-            flex-shrink: 0;
-            opacity: 0.5;
-        }
-        
-        .header h2 { 
-            margin: 0; 
-            font-size: 1.25rem; 
-            font-weight: 900; 
-            color: #ffffff;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            letter-spacing: 0.5px;
-        }
-        
-        .back-btn { 
-            background: rgba(241, 245, 249, 0.9); 
-            border: none; 
-            cursor: pointer; 
-            padding: 8px; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            color: var(--text-muted); 
-            transition: all 0.2s;
-        }
-        .back-btn:hover { background: var(--border); color: var(--primary); }
-
-        .scroll-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            scrollbar-width: thin;
-        }
-
-        .field { margin-bottom: 15px; }
-        label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-main); }
-        input, textarea, select { 
-            width: 100%; padding: 12px; border: 1.5px solid var(--border); 
-            border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
-            background: rgba(255, 255, 255, 0.9);
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); }
-
-        .range-group { 
-            background: rgba(248, 250, 252, 0.8); 
-            padding: 10px; 
-            border-radius: 10px; 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            margin-top: 4px;
-        }
-        .range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; border-radius: 5px; }
-        .range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; }
-        .range-group input::-moz-range-thumb { width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; border: none; }
-        .range-val { min-width: 40px; font-size: 0.85rem; color: var(--primary); font-weight: 800; text-align: right; }
-
-        .btn-group {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-            margin-bottom: 30px;
-        }
-
-        .btn {
-            padding: 10px; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-weight: 700; 
-            font-size: 0.8rem;
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 6px;
-            transition: all 0.2s;
-        }
-        .btn-test { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
-        .btn-test:hover { background: #bbf7d0; }
-        .btn-primary { background: #22c55e; color: white; }
-        .btn-primary:hover { background: #16a34a; }
-        .btn-secondary { background: #e9d5ff; color: #9333ea; border: 1px solid #d8b4fe; }
-        .btn-secondary:hover { background: #ddd6fe; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        #avatar-preview-container { 
-            width: 110px; height: 110px; margin: 0 auto 15px; 
-            border: 3px dashed var(--border); border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            overflow: hidden; cursor: pointer; position: relative;
-            background: rgba(255, 255, 255, 0.9);
-        }
-        #avatar-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
-        #preview-placeholder { color: var(--text-muted); text-align: center; font-size: 0.75rem; padding: 10px; }
-
-        .bot-list-grid { display: flex; flex-direction: column; gap: 12px; }
-        
-        .bot-item {
-            background: rgba(255, 255, 255, 0.5);
-            border: 1.5px solid rgba(255, 255, 255, 0.6); 
-            border-radius: 15px;
-            padding: 12px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between;
-            gap: 12px;
-            transition: 0.2s; 
-            position: relative;
-        }
-        .bot-item:hover { border-color: var(--primary); background: rgba(255, 240, 255, 0.8); }
-        
-        .bot-item-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-            cursor: pointer;
-        }
-
-        .bot-item-actions {
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-
-        .btn-edit {
-            background: #dbeafe;
-            color: #2563eb;
-            border: none;
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-edit:hover { background: #bfdbfe; transform: scale(1.1); }
-
-        .bot-img-mini { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; }
-        .bot-info-mini { flex: 1; }
-        .bot-info-mini h4 { margin: 0; font-size: 1rem; color: var(--text-main); }
-        .online-tag { font-size: 0.7rem; color: var(--success); display: flex; align-items: center; gap: 4px; font-weight: bold; }
-        .online-dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; }
-        
-        .btn-delete { 
-            background: #fee2e2; 
-            color: #ef4444; 
-            border: none; 
-            padding: 8px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .btn-delete:hover { background: #fecaca; transform: scale(1.1); }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        #messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background: rgba(248, 250, 252, 0.7);
-    position: relative;
-    /* 👇 AGREGA ESTAS PROPIEDADES DIRECTAMENTE */
-    background-image: var(--chat-bg-image);  /* Variable dinámica */
-    background-size: cover;
-    background-position: center;
-    background-repeat: repeat-y;  /* Se repite verticalmente */
-    background-blend-mode: overlay;
-    opacity: 0.65;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configura tu IA con Piper</title>
+<link rel="icon" type="image/png" href="Avatarsicon.png">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+--primary: #764ba2;
+--primary-light: #8e63cf;
+--success: #25d366;
+--bg-gradient: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+--card-bg: linear-gradient(135deg, rgba(255, 182, 193, 0.75), rgba(255, 105, 180, 0.65));
+--text-main: #1e293b;
+--text-muted: #64748b;
+--border: #e2e8f0;
+--shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
-        
-   /*#messages::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed; 
-    background-repeat: no-repeat; 
-    opacity: 0.45;
-    z-index: 0;
-    pointer-events: none;
+* { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+body {
+background: var(--bg-gradient);
+background-size: 400% 400%;
+animation: gradientBG 15s ease infinite;
+margin: 0;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 100vh;
+padding: 15px;
 }
-        */
-        
-        .msg { 
-            max-width: 80%; 
-            padding: 12px 16px; 
-            border-radius: 16px; 
-            font-size: 0.95rem; 
-            line-height: 1.4;
-            position: relative;
-            z-index: 1;
-        }
-        .user-msg { align-self: flex-end; 
-                   opacity: 0.5;
-                   background: rgba(0, 132, 255, 0.9);
-                   color: white; 
-                   border-bottom-right-radius: 4px; }
-        .ia-msg { 
-            align-self: flex-start; 
-            background: rgba(226, 232, 240, 0.9); 
-            color: var(--text-main); 
-            border-bottom-left-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            opacity: 0.65;
-        }
-        
-        .ia-msg-content {
-            flex: 1;
-        }
-        
-        .btn-replay-audio {
-            background: rgba(118, 75, 162, 0.1);
-            border: 1px solid rgba(118, 75, 162, 0.3);
-            color: var(--primary);
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            align-self: flex-start;
-            transition: all 0.2s;
-        }
-        .btn-replay-audio:hover {
-            background: rgba(118, 75, 162, 0.2);
-            transform: scale(1.05);
-        }
-
-        .chat-input-box {
-            padding: 15px; 
-            border-top: 1px solid rgba(255, 255, 255, 0.4);
-            display: flex; 
-            gap: 10px; 
-            background: linear-gradient(135deg, rgba(255, 192, 203, 0.6), rgba(255, 182, 193, 0.5));
-            backdrop-filter: blur(5px);
-        }
-
-        hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
-        .section-title { color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; margin-bottom: 15px; display: block; }
-        
-        .nav-footer {
-          padding: 10px 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.4);
-          display: flex;
-          justify-content: space-around;
-          background: linear-gradient(135deg, rgba(255, 192, 203, 0.7), rgba(255, 182, 193, 0.6));
-          backdrop-filter: blur(5px);
-          flex-shrink: 0;
-        opacity: 0.65;
-        }
-        
-        .nav-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          color: var(--text-muted);
-          cursor: pointer;
-          font-size: 0.7rem;
-          font-weight: bold;
-        }
-        .nav-item.active { color: var(--primary); }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        .loading-overlay.show { display: flex; }
-        .spinner { 
-            width: 50px; height: 50px; 
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+@keyframes gradientBG {
+0% { background-position: 0% 50%; }
+50% { background-position: 100% 50%; }
+100% { background-position: 0% 50%; }
+}
+.app-container {
+width: 100%;
+max-width: 450px;
+background: var(--card-bg);
+backdrop-filter: blur(10px);
+border-radius: 20px;
+box-shadow: var(--shadow);
+height: 90vh;
+display: flex;
+flex-direction: column;
+overflow: hidden;
+position: relative;
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.view {
+display: none;
+flex-direction: column;
+height: 100%;
+animation: fadeIn 0.3s ease;
+}
+.view.active { display: flex; }
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(5px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.header {
+padding: 18px;
+border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+display: flex;
+align-items: center;
+gap: 12px;
+background: linear-gradient(to bottom, rgba(147, 51, 234, 0.25), rgba(126, 34, 206, 0.65));
+flex-shrink: 0;
+opacity: 0.5;
+}
+.header h2 {
+margin: 0;
+font-size: 1.25rem;
+font-weight: 900;
+color: #ffffff;
+text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+letter-spacing: 0.5px;
+}
+.back-btn {
+background: rgba(241, 245, 249, 0.9);
+border: none;
+cursor: pointer;
+padding: 8px;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+color: var(--text-muted);
+transition: all 0.2s;
+}
+.back-btn:hover { background: var(--border); color: var(--primary); }
+.scroll-content {
+flex: 1;
+overflow-y: auto;
+padding: 20px;
+scrollbar-width: thin;
+}
+.field { margin-bottom: 15px; }
+label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-main); }
+input, textarea, select {
+width: 100%; padding: 12px; border: 1.5px solid var(--border);
+border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+background: rgba(255, 255, 255, 0.9);
+}
+input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+.range-group {
+background: rgba(248, 250, 252, 0.8);
+padding: 10px;
+border-radius: 10px;
+display: flex;
+align-items: center;
+gap: 12px;
+margin-top: 4px;
+}
+.range-group input { flex: 1; padding: 0; height: 5px; cursor: pointer; appearance: none; background: #cbd5e1; border: none; border-radius: 5px; }
+.range-group input::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+.range-group input::-moz-range-thumb { width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; border: none; }
+.range-val { min-width: 40px; font-size: 0.85rem; color: var(--primary); font-weight: 800; text-align: right; }
+.btn-group {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 8px;
+margin-top: 15px;
+margin-bottom: 30px;
+}
+.btn {
+padding: 10px;
+border: none;
+border-radius: 10px;
+cursor: pointer;
+font-weight: 700;
+font-size: 0.8rem;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+transition: all 0.2s;
+}
+.btn-test { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
+.btn-test:hover { background: #bbf7d0; }
+.btn-primary { background: #22c55e; color: white; }
+.btn-primary:hover { background: #16a34a; }
+.btn-secondary { background: #e9d5ff; color: #9333ea; border: 1px solid #d8b4fe; }
+.btn-secondary:hover { background: #ddd6fe; }
+.btn:active { transform: scale(0.98); opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#avatar-preview-container {
+width: 110px; height: 110px; margin: 0 auto 15px;
+border: 3px dashed var(--border); border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+overflow: hidden; cursor: pointer; position: relative;
+background: rgba(255, 255, 255, 0.9);
+}
+#avatar-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+#preview-placeholder { color: var(--text-muted); text-align: center; font-size: 0.75rem; padding: 10px; }
+.bot-list-grid { display: flex; flex-direction: column; gap: 12px; }
+.bot-item {
+background: rgba(255, 255, 255, 0.5);
+border: 1.5px solid rgba(255, 255, 255, 0.6);
+border-radius: 15px;
+padding: 12px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 12px;
+transition: 0.2s;
+position: relative;
+}
+.bot-item:hover { border-color: var(--primary); background: rgba(255, 240, 255, 0.8); }
+.bot-item-left {
+display: flex;
+align-items: center;
+gap: 12px;
+flex: 1;
+cursor: pointer;
+}
+.bot-item-actions {
+display: flex;
+gap: 8px;
+flex-shrink: 0;
+}
+.btn-edit {
+background: #dbeafe;
+color: #2563eb;
+border: none;
+padding: 8px;
+border-radius: 8px;
+cursor: pointer;
+transition: 0.2s;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.btn-edit:hover { background: #bfdbfe; transform: scale(1.1); }
+.bot-img-mini { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; }
+.bot-info-mini { flex: 1; }
+.bot-info-mini h4 { margin: 0; font-size: 1rem; color: var(--text-main); }
+.online-tag { font-size: 0.7rem; color: var(--success); display: flex; align-items: center; gap: 4px; font-weight: bold; }
+.online-dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; }
+.btn-delete {
+background: #fee2e2;
+color: #ef4444;
+border: none;
+padding: 8px;
+border-radius: 8px;
+cursor: pointer;
+transition: 0.2s;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+.btn-delete:hover { background: #fecaca; transform: scale(1.1); }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+#messages {
+flex: 1;
+overflow-y: auto;
+padding: 20px;
+display: flex;
+flex-direction: column;
+gap: 12px;
+background: rgba(248, 250, 252, 0.7);
+position: relative;
+background-image: var(--chat-bg-image);
+background-size: cover;
+background-position: center;
+background-repeat: repeat-y;
+background-blend-mode: overlay;
+opacity: 0.65;
+}
+.msg {
+max-width: 80%;
+padding: 12px 16px;
+border-radius: 16px;
+font-size: 0.95rem;
+line-height: 1.4;
+position: relative;
+z-index: 1;
+}
+.user-msg { align-self: flex-end;
+opacity: 0.5;
+background: rgba(0, 132, 255, 0.9);
+color: white;
+border-bottom-right-radius: 4px; }
+.ia-msg {
+align-self: flex-start;
+background: rgba(226, 232, 240, 0.9);
+color: var(--text-main);
+border-bottom-left-radius: 4px;
+display: flex;
+flex-direction: column;
+gap: 8px;
+opacity: 0.65;
+}
+.ia-msg-content {
+flex: 1;
+}
+.btn-replay-audio {
+background: rgba(118, 75, 162, 0.1);
+border: 1px solid rgba(118, 75, 162, 0.3);
+color: var(--primary);
+padding: 6px 12px;
+border-radius: 8px;
+cursor: pointer;
+font-size: 0.75rem;
+display: flex;
+align-items: center;
+gap: 6px;
+align-self: flex-start;
+transition: all 0.2s;
+}
+.btn-replay-audio:hover {
+background: rgba(118, 75, 162, 0.2);
+transform: scale(1.05);
+}
+.chat-input-box {
+padding: 15px;
+border-top: 1px solid rgba(255, 255, 255, 0.4);
+display: flex;
+gap: 10px;
+background: linear-gradient(135deg, rgba(255, 192, 203, 0.6), rgba(255, 182, 193, 0.5));
+backdrop-filter: blur(5px);
+}
+hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+.section-title { color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; margin-bottom: 15px; display: block; }
+.nav-footer {
+padding: 10px 20px;
+border-top: 1px solid rgba(255, 255, 255, 0.4);
+display: flex;
+justify-content: space-around;
+background: linear-gradient(135deg, rgba(255, 192, 203, 0.7), rgba(255, 182, 193, 0.6));
+backdrop-filter: blur(5px);
+flex-shrink: 0;
+opacity: 0.65;
+}
+.nav-item {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 4px;
+color: var(--text-muted);
+cursor: pointer;
+font-size: 0.7rem;
+font-weight: bold;
+}
+.nav-item.active { color: var(--primary); }
+.loading-overlay {
+position: fixed;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: rgba(0,0,0,0.5);
+display: none;
+align-items: center;
+justify-content: center;
+z-index: 9999;
+}
+.loading-overlay.show { display: flex; }
+.spinner {
+width: 50px; height: 50px;
+border: 4px solid rgba(255,255,255,0.3);
+border-top-color: white;
+border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
-
 <div class="loading-overlay" id="loading-overlay">
-    <div class="spinner"></div>
+<div class="spinner"></div>
 </div>
-
 <div class="app-container">
-
-    <!-- VIEW 1: CONFIGURATION -->
-    <div id="view-config" class="view active">
-        <div class="header">
-            <i data-lucide="plus-circle" style="color: white;"></i>
-            <h2>Crear Personaje</h2>
-        </div>
-        <div class="scroll-content">
-            <div class="field" style="text-align: center;">
-                <div id="avatar-preview-container">
-                    <span id="preview-placeholder">Toca para subir foto</span>
-                    <img id="avatar-preview" src="" alt="Vista previa">
-                </div>
-                <input type="file" id="ai-image" accept="image/*" style="display: none;">
-            </div>
-            
-            <div class="field">
-                <label>Nombre de la IA:</label>
-                <input type="text" id="ai-name" placeholder="Ej: Kasandra">
-            </div>
-
-            <div class="field">
-                <label>Personalidad:</label>
-                <textarea id="ai-persona" rows="2" placeholder="Ej: Amigable y atenta"></textarea>
-            </div>
-
-            <hr>
-            <span class="section-title">🔊 CONFIGURACIÓN DE VOZ</span>
-
-            <div class="field">
-                <label>Voz (Piper Local):</label>
-                <select id="voice-select">
-                    <optgroup label="Mujeres">
-                        <option value="es_MX-claude-high.onnx">🇲🇽 Claude (High)</option>
-                        <option value="es_AR-daniela-high.onnx">🇦🇷 Daniela (High)</option>
-                    </optgroup>
-                    <optgroup label="Hombres">
-                        <option value="es_ES-carlfm-x_low.onnx">🇪🇸 CarlfM (X-Low)</option>
-                        <option value="es_ES-davefx-medium.onnx">🇪🇸 DaveFX (Medium)</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <div class="field">
-                <label>Texto de prueba:</label>
-                <textarea id="test-text" rows="2" placeholder="Prueba la voz..."></textarea>
-            </div>
-
-            <div class="field">
-                <label>Velocidad (Rate):</label>
-                <div class="range-group">
-                    <input type="range" id="voice-rate" min="0.5" max="2.0" step="0.1" value="1.0">
-                    <span class="range-val" id="val-rate">1.0</span>
-                </div>
-            </div>
-
-            <div class="field">
-                <label>Tono (Noise Scale):</label>
-                <div class="range-group">
-                    <input type="range" id="voice-pitch" min="0.1" max="1.5" step="0.05" value="0.667">
-                    <span class="range-val" id="val-pitch">0.667</span>
-                </div>
-            </div>
-
-            <hr>
-            <span class="section-title">🚀 ACCIONES</span>
-
-            <div class="btn-group">
-                <button id="btn-test" class="btn btn-test">
-                    <i data-lucide="volume-2"></i> Probar Voz
-                </button>
-                <button id="btn-save" class="btn btn-primary">
-                    <i data-lucide="check-circle"></i> <span id="btn-save-text">Crear Avatar</span>
-                </button>
-                <button id="btn-download" class="btn btn-secondary">
-                    <i data-lucide="file-audio"></i> .wav
-                </button>
-            </div>
-            
-            <div style="height: 10px;"></div>
-        </div>
-        
-        <div class="nav-footer">
-          <div class="nav-item active" data-view="view-config">
-            <i data-lucide="plus"></i><span>Nuevo</span>
-          </div>
-          <div class="nav-item" data-view="view-list">
-            <i data-lucide="users"></i><span>Personajes</span>
-          </div>
-        </div>
-    </div>
-
-    <!-- VIEW 2: BOTS LIST -->
-    <div id="view-list" class="view">
-        <div class="header">
-            <button class="back-btn" data-view="view-config"><i data-lucide="arrow-left"></i></button>
-            <i data-lucide="users" style="color: white;"></i>
-            <h2>Mis Personajes</h2>
-        </div>
-        <div class="scroll-content">
-            <div id="bot-list-container" class="bot-list-grid"></div>
-        </div>
-        <div class="nav-footer">
-          <div class="nav-item" data-view="view-config">
-            <i data-lucide="plus"></i><span>Nuevo</span>
-          </div>
-          <div class="nav-item active" data-view="view-list">
-            <i data-lucide="users"></i><span>Personajes</span>
-          </div>
-        </div>
-    </div>
-
-    <!-- VIEW 3: CHAT -->
-    <div id="view-chat" class="view">
-        <div class="header">
-            <button class="back-btn" data-view="view-list"><i data-lucide="arrow-left"></i></button>
-            <img id="chat-avatar" src="" class="bot-img-mini" style="width: 38px; height: 38px;">
-            <div>
-                <h2 id="display-name" style="font-size: 1rem; line-height: 1;">IA Chat</h2>
-                <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
-            </div>
-        </div>
-        <div id="messages"></div>
-        <div class="chat-input-box">
-            <input type="text" id="user-input" placeholder="Escribe un mensaje...">
-            <button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;">
-                <i data-lucide="send"></i>
-            </button>
-        </div>
-    </div>
-
+<!-- VIEW 1: CONFIGURATION -->
+<div id="view-config" class="view active">
+<div class="header">
+<i data-lucide="plus-circle" style="color: white;"></i>
+<h2>Crear Personaje</h2>
 </div>
-
+<div class="scroll-content">
+<div class="field" style="text-align: center;">
+<div id="avatar-preview-container">
+<span id="preview-placeholder">Toca para subir foto</span>
+<img id="avatar-preview" src="" alt="Vista previa">
+</div>
+<input type="file" id="ai-image" accept="image/*" style="display: none;">
+</div>
+<div class="field">
+<label>Nombre de la IA:</label>
+<input type="text" id="ai-name" placeholder="Ej: Kasandra">
+</div>
+<div class="field">
+<label>Personalidad:</label>
+<textarea id="ai-persona" rows="2" placeholder="Ej: Amigable y atenta"></textarea>
+</div>
+<hr>
+<span class="section-title">🔊 CONFIGURACIÓN DE VOZ</span>
+<div class="field">
+<label>Voz (Piper Local):</label>
+<select id="voice-select">
+<optgroup label="Mujeres">
+<option value="es_MX-claude-high.onnx">🇲🇽 Claude (High)</option>
+<option value="es_AR-daniela-high.onnx">🇦🇷 Daniela (High)</option>
+</optgroup>
+<optgroup label="Hombres">
+<option value="es_ES-carlfm-x_low.onnx">🇪🇸 CarlfM (X-Low)</option>
+<option value="es_ES-davefx-medium.onnx">🇪🇸 DaveFX (Medium)</option>
+</optgroup>
+</select>
+</div>
+<div class="field">
+<label>Texto de prueba:</label>
+<textarea id="test-text" rows="2" placeholder="Prueba la voz..."></textarea>
+</div>
+<div class="field">
+<label>Velocidad (Rate):</label>
+<div class="range-group">
+<input type="range" id="voice-rate" min="0.5" max="2.0" step="0.1" value="1.0">
+<span class="range-val" id="val-rate">1.0</span>
+</div>
+</div>
+<div class="field">
+<label>Tono (Noise Scale):</label>
+<div class="range-group">
+<input type="range" id="voice-pitch" min="0.1" max="1.5" step="0.05" value="0.667">
+<span class="range-val" id="val-pitch">0.667</span>
+</div>
+</div>
+<hr>
+<span class="section-title">🚀 ACCIONES</span>
+<div class="btn-group">
+<button id="btn-test" class="btn btn-test">
+<i data-lucide="volume-2"></i> Probar Voz
+</button>
+<button id="btn-save" class="btn btn-primary">
+<i data-lucide="check-circle"></i> <span id="btn-save-text">Crear Avatar</span>
+</button>
+<button id="btn-download" class="btn btn-secondary">
+<i data-lucide="file-audio"></i> .wav
+</button>
+</div>
+<div style="height: 10px;"></div>
+</div>
+<div class="nav-footer">
+<div class="nav-item active" data-view="view-config">
+<i data-lucide="plus"></i><span>Nuevo</span>
+</div>
+<div class="nav-item" data-view="view-list">
+<i data-lucide="users"></i><span>Personajes</span>
+</div>
+</div>
+</div>
+<!-- VIEW 2: BOTS LIST -->
+<div id="view-list" class="view">
+<div class="header">
+<button class="back-btn" data-view="view-config"><i data-lucide="arrow-left"></i></button>
+<i data-lucide="users" style="color: white;"></i>
+<h2>Mis Personajes</h2>
+</div>
+<div class="scroll-content">
+<div id="bot-list-container" class="bot-list-grid"></div>
+</div>
+<div class="nav-footer">
+<div class="nav-item" data-view="view-config">
+<i data-lucide="plus"></i><span>Nuevo</span>
+</div>
+<div class="nav-item active" data-view="view-list">
+<i data-lucide="users"></i><span>Personajes</span>
+</div>
+</div>
+</div>
+<!-- VIEW 3: CHAT -->
+<div id="view-chat" class="view">
+<div class="header">
+<button class="back-btn" data-view="view-list"><i data-lucide="arrow-left"></i></button>
+<img id="chat-avatar" src="" class="bot-img-mini" style="width: 38px; height: 38px;">
+<div>
+<h2 id="display-name" style="font-size: 1rem; line-height: 1;">IA Chat</h2>
+<span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
+</div>
+</div>
+<div id="messages"></div>
+<div class="chat-input-box">
+<input type="text" id="user-input" placeholder="Escribe un mensaje...">
+<button id="btn-enviar" class="btn btn-primary" style="width: auto; padding: 10px 15px;">
+<i data-lucide="send"></i>
+</button>
+</div>
+</div>
+</div>
 <script>
 (function() {
-    'use strict';
-
-    // ==================== ⚙️ CONFIGURACIÓN ====================
-    const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";
-    const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
-    const STORAGE_BUCKET = "personajes-avatars";
-
-    const AI_MODELS = [
-    {
-        id: 'groq-llama',  // 👈 PRIMERO - MÁS RÁPIDO
-        name: 'Groq Llama 3.3',
-        url: 'https://api.groq.com/openai/v1/chat/completions',
-        api_key: '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',
-        model: 'llama-3.3-70b-versatile',
-        type: 'openai'
-    }
-    /*  {
-        id: 'gemma-hf',  // 👈 ÚLTIMO - RESPALDO
-        name: 'Gemma HuggingFace',
-        url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
-        api_key: '',
-        model: 'gemma',
-        type: 'huggingface'
-    }
-*/
+'use strict';
+// ==================== ⚙️ CONFIGURACIÓN ====================
+const SUPABASE_URL = "https://bmnmfpxorpkksczdewnp.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbm1mcHhvcnBra3NjemRld25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NjQ4NjAsImV4cCI6MjA4MjU0MDg2MH0.2XctteSjqD_zZG5w9HqUk2h9wNH5JTF8KvhLq0gf3zY";
+const PIPER_SERVER = "https://alejandrott24-piper-tts-server.hf.space/tts";
+const STORAGE_BUCKET = "personajes-avatars";
+const AI_MODELS = [
+{
+id: 'gemma-hf',
+name: 'Gemma HuggingFace',
+url: 'https://alejandrott24-mi-gemma-servidor.hf.space',
+api_key: '',
+model: 'gemma',
+type: 'huggingface'
+}
 ];
-    // ==================== VARIABLES GLOBALES ====================
-    let dbClient = null;
-    let bots = [];
-    let currentBot = null;
-    let tempImage = "";
-    let tempImageFile = null;
-    let lastAudioBlob = null;
-    let currentModelIndex = 0;
-    let editingBotId = null;
-
-    // ==================== INICIALIZACIÓN ====================
-    function initDatabase() {
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-            console.error('❌ Configuración de Supabase incompleta');
-            alert('⚠️ Configuración incompleta de Supabase');
-            return false;
-        }
-        
-        dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Base de datos inicializada');
-        return true;
-    }
-
-    // ==================== LOADING ====================
-    function showLoading() {
-        document.getElementById('loading-overlay').classList.add('show');
-    }
-
-    function hideLoading() {
-        document.getElementById('loading-overlay').classList.remove('show');
-    }
-
-    // ==================== VISTAS ====================
-    function switchView(viewId) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        
-        if(viewId === 'view-list') {
-            cargarPersonajes();
-        }
-        
-        if(viewId === 'view-config' && editingBotId === null) {
-            limpiarFormulario();
-        }
-        
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        document.querySelectorAll(`[data-view="${viewId}"]`).forEach(item => item.classList.add('active'));
-        
-        lucide.createIcons();
-    }
-
-    // ==================== STORAGE ====================
-    async function subirImagenStorage(imageFile) {
-        if (!imageFile) return null;
-        
-        try {
-            const fileName = `avatar_${Date.now()}.jpg`;
-            
-            const { data, error } = await dbClient.storage
-                .from(STORAGE_BUCKET)
-                .upload(fileName, imageFile, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
-            
-            if (error) {
-                console.error('Error subiendo imagen:', error);
-                throw error;
-            }
-            
-            const { data: urlData } = dbClient.storage
-                .from(STORAGE_BUCKET)
-                .getPublicUrl(fileName);
-            
-            console.log('✅ Imagen subida:', urlData.publicUrl);
-            return urlData.publicUrl;
-            
-        } catch (error) {
-            console.error('❌ Error en subirImagenStorage:', error);
-            alert('Error subiendo imagen: ' + error.message);
-            return null;
-        }
-    }
-
-    // ==================== PERSONAJES ====================
-    async function cargarPersonajes() {
-        if (!dbClient) {
-            console.error('Base de datos no inicializada');
-            return;
-        }
-        
-        try {
-            showLoading();
-            const { data, error } = await dbClient
-                .from('personajes')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (error) throw error;
-            
-            bots = data || [];
-            renderBots();
-            console.log(`✅ ${bots.length} personajes cargados`);
-        } catch (error) {
-            console.error('Error cargando personajes:', error);
-            alert('❌ Error: ' + error.message);
-        } finally {
-            hideLoading();
-        }
-    }
-
-    function renderBots() {
-        const container = document.getElementById('bot-list-container');
-        container.innerHTML = '';
-        
-        if (bots.length === 0) {
-            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
-            return;
-        }
-        
-        bots.forEach(bot => {
-            const el = document.createElement('div');
-            el.className = 'bot-item';
-            
-            const imgSrc = bot.image_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
-            
-            const leftDiv = document.createElement('div');
-            leftDiv.className = 'bot-item-left';
-            leftDiv.onclick = () => openChat(bot.id);
-            
-            leftDiv.innerHTML = `
-                <img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
-                <div class="bot-info-mini">
-                    <h4>${bot.name}</h4>
-                    <span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
-                </div>
-            `;
-            
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'bot-item-actions';
-            
-            const editBtn = document.createElement('button');
-            editBtn.className = 'btn-edit';
-            editBtn.innerHTML = '<i data-lucide="edit-2" size="18"></i>';
-            editBtn.onclick = (e) => {
-                e.stopPropagation();
-                editarBot(bot.id);
-            };
-            
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn-delete';
-            delBtn.innerHTML = '<i data-lucide="trash-2" size="18"></i>';
-            delBtn.onclick = (e) => deleteBot(e, bot.id);
-            
-            actionsDiv.appendChild(editBtn);
-            actionsDiv.appendChild(delBtn);
-            
-            el.appendChild(leftDiv);
-            el.appendChild(actionsDiv);
-            container.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    async function guardarPersonaje() {
-        const name = document.getElementById('ai-name').value.trim();
-        if(!name) return alert("❌ Ponle nombre al personaje");
-        
-        if (!dbClient) {
-            alert('⚠️ Base de datos no configurada');
-            return;
-        }
-
-        try {
-            showLoading();
-            
-            let imageUrl = null;
-            
-            if (tempImageFile) {
-                console.log('📤 Subiendo imagen nueva...');
-                imageUrl = await subirImagenStorage(tempImageFile);
-            }
-            
-            const personajeData = {
-                name: name,
-                persona: document.getElementById('ai-persona').value,
-                voice_type: document.getElementById('voice-select').value,
-                rate: parseFloat(document.getElementById('voice-rate').value),
-                pitch: parseFloat(document.getElementById('voice-pitch').value)
-            };
-            
-            if (editingBotId) {
-                if (imageUrl) {
-                    personajeData.image_url = imageUrl;
-                } else {
-                    const botActual = bots.find(b => b.id === editingBotId);
-                    if (botActual && botActual.image_url) {
-                        personajeData.image_url = botActual.image_url;
-                    }
-                }
-                
-                const { data, error } = await dbClient
-                    .from('personajes')
-                    .update(personajeData)
-                    .eq('id', editingBotId)
-                    .select();
-
-                if (error) throw error;
-                console.log('✅ Personaje actualizado:', data);
-                alert('✅ Personaje actualizado');
-            } else {
-                if (imageUrl) {
-                    personajeData.image_url = imageUrl;
-                }
-                
-                const { data, error } = await dbClient
-                    .from('personajes')
-                    .insert([personajeData])
-                    .select();
-
-                if (error) throw error;
-                console.log('✅ Personaje creado:', data);
-                alert('✅ Personaje creado');
-            }
-            
-            limpiarFormulario();
-            switchView('view-list');
-            
-        } catch (error) {
-            console.error('Error guardando:', error);
-            alert('❌ Error: ' + error.message);
-        } finally {
-            hideLoading();
-        }
-    }
-
-    function limpiarFormulario() {
-        document.getElementById('ai-name').value = '';
-        document.getElementById('ai-persona').value = '';
-        document.getElementById('voice-rate').value = '1.0';
-        document.getElementById('val-rate').innerText = '1.0';
-        document.getElementById('voice-pitch').value = '0.667';
-        document.getElementById('val-pitch').innerText = '0.667';
-        tempImage = '';
-        tempImageFile = null;
-        document.getElementById('avatar-preview').style.display = 'none';
-        document.getElementById('preview-placeholder').style.display = 'block';
-        editingBotId = null;
-        document.getElementById('btn-save-text').innerText = 'Crear Avatar';
-        document.querySelector('#view-config .header h2').innerText = 'Crear Personaje';
-    }
-
-    function editarBot(botId) {
-        const bot = bots.find(b => b.id === botId);
-        if (!bot) return;
-        
-        editingBotId = botId;
-        
-        document.getElementById('ai-name').value = bot.name;
-        document.getElementById('ai-persona').value = bot.persona || '';
-        document.getElementById('voice-select').value = bot.voice_type;
-        document.getElementById('voice-rate').value = bot.rate || 1.0;
-        document.getElementById('val-rate').innerText = bot.rate || 1.0;
-        document.getElementById('voice-pitch').value = bot.pitch || 0.667;
-        document.getElementById('val-pitch').innerText = bot.pitch || 0.667;
-        
-        if (bot.image_url) {
-            document.getElementById('avatar-preview').src = bot.image_url;
-            document.getElementById('avatar-preview').style.display = 'block';
-            document.getElementById('preview-placeholder').style.display = 'none';
-        }
-        
-        tempImageFile = null;
-        
-        document.getElementById('btn-save-text').innerText = 'Actualizar';
-        document.querySelector('#view-config .header h2').innerText = 'Editar Personaje';
-        
-        switchView('view-config');
-    }
-
-    async function deleteBot(e, id) {
-        e.stopPropagation();
-        if (!confirm('¿Eliminar este personaje?')) return;
-        
-        try {
-            showLoading();
-            const { error } = await dbClient
-                .from('personajes')
-                .delete()
-                .eq('id', id);
-            
-            if (error) throw error;
-            
-            await cargarPersonajes();
-            alert('✅ Personaje eliminado');
-        } catch (error) {
-            console.error('Error eliminando:', error);
-            alert('❌ Error: ' + error.message);
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // ==================== CHAT ====================
-    function openChat(botId) {
-        currentBot = bots.find(b => b.id === botId);
-        if (!currentBot) {
-            console.error('Bot no encontrado:', botId);
-            return;
-        }
-        
-        const imgSrc = currentBot.image_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
-        
-        document.getElementById('display-name').innerText = currentBot.name;
-        document.getElementById('chat-avatar').src = imgSrc;
-        document.getElementById('messages').innerHTML = "";
-        
-        const styleEl = document.getElementById('chat-bg-style') || document.createElement('style');
-        if (!styleEl.id) {
-            styleEl.id = 'chat-bg-style';
-            document.head.appendChild(styleEl);
-        }
-        
- styleEl.textContent = `
-    #messages { 
-        background-image: url("${imgSrc}") !important;
-        background-blend-mode: overlay;
-    }
-`;   
-        currentModelIndex = Math.floor(Math.random() * AI_MODELS.length);
-        
-        switchView('view-chat');
-    }
-
-    function formatearRespuesta(texto) {
-        // Reemplazar texto entre paréntesis por formato cursiva con puntos suspensivos
-        texto = texto.replace(/\(([^)]+)\)/g, '<em>($1)...</em>');
-        
-        // Detectar diálogos (texto entre comillas o líneas que parecen diálogo)
-        // Convertir a mayúsculas y negritas
-        texto = texto.replace(/"([^"]+)"/g, '<strong>$1</strong>');
-        
-        // Para frases que empiezan con mayúscula y terminan en puntuación típica de diálogo
-        texto = texto.replace(/([A-ZÑÁÉÍÓÚ][^.!?]*[.!?])/g, (match) => {
-            // Si ya está dentro de em o strong, no modificar
-            if (match.includes('<em>') || match.includes('<strong>')) return match;
-            return `<strong>${match.toUpperCase()}</strong>`;
-        });
-        
-        return texto;
-    }
-
-    async function enviar() {
-        const input = document.getElementById('user-input');
-        const texto = input.value.trim();
-        if (!texto) return;
-
-        const messagesContainer = document.getElementById('messages');
-        const userDiv = document.createElement('div');
-        userDiv.className = 'msg user-msg'; 
-        userDiv.innerText = texto;
-        messagesContainer.appendChild(userDiv);
-        input.value = "";
-
-        const iaDiv = document.createElement('div');
-        iaDiv.className = 'msg ia-msg'; 
-        iaDiv.innerHTML = '<div class="ia-msg-content">⏳ Pensando...</div>';
-        messagesContainer.appendChild(iaDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        try {
-            const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
-
+// ==================== VARIABLES GLOBALES ====================
+let dbClient = null;
+let bots = [];
+let currentBot = null;
+let tempImage = "";
+let tempImageFile = null;
+let lastAudioBlob = null;
+let currentModelIndex = 0;
+let editingBotId = null;
+// ==================== INICIALIZACIÓN ====================
+function initDatabase() {
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+console.error('❌ Configuración de Supabase incompleta');
+alert('⚠️ Configuración incompleta de Supabase');
+return false;
+}
+dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log('✅ Base de datos inicializada');
+return true;
+}
+// ==================== LOADING ====================
+function showLoading() {
+document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() {
+document.getElementById('loading-overlay').classList.remove('show');
+}
+// ==================== VISTAS ====================
+function switchView(viewId) {
+document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+document.getElementById(viewId).classList.add('active');
+if(viewId === 'view-list') {
+cargarPersonajes();
+}
+if(viewId === 'view-config' && editingBotId === null) {
+limpiarFormulario();
+}
+document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+document.querySelectorAll(`[data-view="${viewId}"]`).forEach(item => item.classList.add('active'));
+lucide.createIcons();
+}
+// ==================== STORAGE ====================
+async function subirImagenStorage(imageFile) {
+if (!imageFile) return null;
+try {
+const fileName = `avatar_${Date.now()}.jpg`;
+const { data, error } = await dbClient.storage
+.from(STORAGE_BUCKET)
+.upload(fileName, imageFile, {
+cacheControl: '3600',
+upsert: false
+});
+if (error) {
+console.error('Error subiendo imagen:', error);
+throw error;
+}
+const { data: urlData } = dbClient.storage
+.from(STORAGE_BUCKET)
+.getPublicUrl(fileName);
+console.log('✅ Imagen subida:', urlData.publicUrl);
+return urlData.publicUrl;
+} catch (error) {
+console.error('❌ Error en subirImagenStorage:', error);
+alert('Error subiendo imagen: ' + error.message);
+return null;
+}
+}
+// ==================== PERSONAJES ====================
+async function cargarPersonajes() {
+if (!dbClient) {
+console.error('Base de datos no inicializada');
+return;
+}
+try {
+showLoading();
+const { data, error } = await dbClient
+.from('personajes')
+.select('*')
+.order('created_at', { ascending: false });
+if (error) throw error;
+bots = data || [];
+renderBots();
+console.log(`✅ ${bots.length} personajes cargados`);
+} catch (error) {
+console.error('Error cargando personajes:', error);
+alert('❌ Error: ' + error.message);
+} finally {
+hideLoading();
+}
+}
+function renderBots() {
+const container = document.getElementById('bot-list-container');
+container.innerHTML = '';
+if (bots.length === 0) {
+container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No hay personajes creados aún</p>';
+return;
+}
+bots.forEach(bot => {
+const el = document.createElement('div');
+el.className = 'bot-item';
+const imgSrc = bot.image_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${bot.name}`;
+const leftDiv = document.createElement('div');
+leftDiv.className = 'bot-item-left';
+leftDiv.onclick = () => openChat(bot.id);
+leftDiv.innerHTML = `
+<img src="${imgSrc}" class="bot-img-mini" alt="${bot.name}">
+<div class="bot-info-mini">
+<h4>${bot.name}</h4>
+<span class="online-tag"><span class="online-dot"></span> EN LÍNEA</span>
+</div>
+`;
+const actionsDiv = document.createElement('div');
+actionsDiv.className = 'bot-item-actions';
+const editBtn = document.createElement('button');
+editBtn.className = 'btn-edit';
+editBtn.innerHTML = '<i data-lucide="edit-2" size="18"></i>';
+editBtn.onclick = (e) => {
+e.stopPropagation();
+editarBot(bot.id);
+};
+const delBtn = document.createElement('button');
+delBtn.className = 'btn-delete';
+delBtn.innerHTML = '<i data-lucide="trash-2" size="18"></i>';
+delBtn.onclick = (e) => deleteBot(e, bot.id);
+actionsDiv.appendChild(editBtn);
+actionsDiv.appendChild(delBtn);
+el.appendChild(leftDiv);
+el.appendChild(actionsDiv);
+container.appendChild(el);
+});
+lucide.createIcons();
+}
+async function guardarPersonaje() {
+const name = document.getElementById('ai-name').value.trim();
+if(!name) return alert("❌ Ponle nombre al personaje");
+if (!dbClient) {
+alert('⚠️ Base de datos no configurada');
+return;
+}
+try {
+showLoading();
+let imageUrl = null;
+if (tempImageFile) {
+console.log('📤 Subiendo imagen nueva...');
+imageUrl = await subirImagenStorage(tempImageFile);
+}
+const personajeData = {
+name: name,
+persona: document.getElementById('ai-persona').value,
+voice_type: document.getElementById('voice-select').value,
+rate: parseFloat(document.getElementById('voice-rate').value),
+pitch: parseFloat(document.getElementById('voice-pitch').value)
+};
+if (editingBotId) {
+if (imageUrl) {
+personajeData.image_url = imageUrl;
+} else {
+const botActual = bots.find(b => b.id === editingBotId);
+if (botActual && botActual.image_url) {
+personajeData.image_url = botActual.image_url;
+}
+}
+const { data, error } = await dbClient
+.from('personajes')
+.update(personajeData)
+.eq('id', editingBotId)
+.select();
+if (error) throw error;
+console.log('✅ Personaje actualizado:', data);
+alert('✅ Personaje actualizado');
+} else {
+if (imageUrl) {
+personajeData.image_url = imageUrl;
+}
+const { data, error } = await dbClient
+.from('personajes')
+.insert([personajeData])
+.select();
+if (error) throw error;
+console.log('✅ Personaje creado:', data);
+alert('✅ Personaje creado');
+}
+limpiarFormulario();
+switchView('view-list');
+} catch (error) {
+console.error('Error guardando:', error);
+alert('❌ Error: ' + error.message);
+} finally {
+hideLoading();
+}
+}
+function limpiarFormulario() {
+document.getElementById('ai-name').value = '';
+document.getElementById('ai-persona').value = '';
+document.getElementById('voice-rate').value = '1.0';
+document.getElementById('val-rate').innerText = '1.0';
+document.getElementById('voice-pitch').value = '0.667';
+document.getElementById('val-pitch').innerText = '0.667';
+tempImage = '';
+tempImageFile = null;
+document.getElementById('avatar-preview').style.display = 'none';
+document.getElementById('preview-placeholder').style.display = 'block';
+editingBotId = null;
+document.getElementById('btn-save-text').innerText = 'Crear Avatar';
+document.querySelector('#view-config .header h2').innerText = 'Crear Personaje';
+}
+function editarBot(botId) {
+const bot = bots.find(b => b.id === botId);
+if (!bot) return;
+editingBotId = botId;
+document.getElementById('ai-name').value = bot.name;
+document.getElementById('ai-persona').value = bot.persona || '';
+document.getElementById('voice-select').value = bot.voice_type;
+document.getElementById('voice-rate').value = bot.rate || 1.0;
+document.getElementById('val-rate').innerText = bot.rate || 1.0;
+document.getElementById('voice-pitch').value = bot.pitch || 0.667;
+document.getElementById('val-pitch').innerText = bot.pitch || 0.667;
+if (bot.image_url) {
+document.getElementById('avatar-preview').src = bot.image_url;
+document.getElementById('avatar-preview').style.display = 'block';
+document.getElementById('preview-placeholder').style.display = 'none';
+}
+tempImageFile = null;
+document.getElementById('btn-save-text').innerText = 'Actualizar';
+document.querySelector('#view-config .header h2').innerText = 'Editar Personaje';
+switchView('view-config');
+}
+async function deleteBot(e, id) {
+e.stopPropagation();
+if (!confirm('¿Eliminar este personaje?')) return;
+try {
+showLoading();
+const { error } = await dbClient
+.from('personajes')
+.delete()
+.eq('id', id);
+if (error) throw error;
+await cargarPersonajes();
+alert('✅ Personaje eliminado');
+} catch (error) {
+console.error('Error eliminando:', error);
+alert('❌ Error: ' + error.message);
+} finally {
+hideLoading();
+}
+}
+// ==================== CHAT ====================
+function openChat(botId) {
+currentBot = bots.find(b => b.id === botId);
+if (!currentBot) {
+console.error('Bot no encontrado:', botId);
+return;
+}
+const imgSrc = currentBot.image_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentBot.name}`;
+document.getElementById('display-name').innerText = currentBot.name;
+document.getElementById('chat-avatar').src = imgSrc;
+document.getElementById('messages').innerHTML = "";
+const styleEl = document.getElementById('chat-bg-style') || document.createElement('style');
+if (!styleEl.id) {
+styleEl.id = 'chat-bg-style';
+document.head.appendChild(styleEl);
+}
+styleEl.textContent = `
+#messages {
+background-image: url("${imgSrc}") !important;
+background-blend-mode: overlay;
+}
+`;
+currentModelIndex = Math.floor(Math.random() * AI_MODELS.length);
+switchView('view-chat');
+}
+function formatearRespuesta(texto) {
+texto = texto.replace(/\(([^)]+)\)/g, '<em>($1)...</em>');
+texto = texto.replace(/"([^"]+)"/g, '<strong>$1</strong>');
+texto = texto.replace(/([A-ZÑÁÉÍÓÚ][^.!?]*[.!?])/g, (match) => {
+if (match.includes('<em>') || match.includes('<strong>')) return match;
+return `<strong>${match.toUpperCase()}</strong>`;
+});
+return texto;
+}
+async function enviar() {
+const input = document.getElementById('user-input');
+const texto = input.value.trim();
+if (!texto) return;
+const messagesContainer = document.getElementById('messages');
+const userDiv = document.createElement('div');
+userDiv.className = 'msg user-msg';
+userDiv.innerText = texto;
+messagesContainer.appendChild(userDiv);
+input.value = "";
+const iaDiv = document.createElement('div');
+iaDiv.className = 'msg ia-msg';
+iaDiv.innerHTML = '<div class="ia-msg-content">⏳ Pensando...</div>';
+messagesContainer.appendChild(iaDiv);
+messagesContainer.scrollTop = messagesContainer.scrollHeight;
+try {
+const systemPrompt = `Eres ${currentBot.name}. Personalidad: ${currentBot.persona}.
 FORMATO VISUAL (Markdown):
 - Diálogos: Todo lo que hables debe estar entre comillas "TEXTO AQUÍ".
 - Acciones/Escenarios: Escribe las descripciones entre paréntesis (descripción aquí).
 - Haz un uso correcto de signos de puntuación, separaciones y párrafos.
-
 RESTRICCIONES PARA AUDIO (TTS):
 - PROHIBIDO el uso de asteriscos simples (*) para acciones o sonidos.
 - PROHIBIDO el uso de emojis.
 - PROHIBIDO incluir onomatopeyas o sonidos escritos (ej: gluck, slurp, suspiro) que el sistema de voz pueda leer literalmente.
-
 NO HACER:
 - NO uses asteriscos (*) para acciones o sonidos
 - No uses emojis en ninguna conversación
 - No responder más de 3 párrafos
-
 SÍ HACER:
 - Habla de forma natural y conversacional
 - Responde en español
 - Sé coherente con tu personalidad
 - Mantén tus respuestas en una longitud aproximada de 70 palabras`;
-            
-            const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
-            
-            // Formatear respuesta
-            const respuestaFormateada = formatearRespuesta(respuesta);
-            
-            // Crear contenido con botón de replay
-            iaDiv.innerHTML = `
-                <div class="ia-msg-content">${respuestaFormateada}</div>
-                <button class="btn-replay-audio" onclick="window.replayLastAudio()">
-                    <i data-lucide="volume-2" size="14"></i> Reproducir
-                </button>
-            `;
-            
-            lucide.createIcons();
-            
-            // Guardar audio para replay
-            window.lastResponseText = respuesta;
-            window.lastResponseVoice = {
-                voice: currentBot.voice_type,
-                rate: currentBot.rate,
-                pitch: currentBot.pitch
-            };
-            
-            hablar(respuesta, {
-                voice: currentBot.voice_type,
-                rate: currentBot.rate,
-                pitch: currentBot.pitch
-            });
-            
-        } catch (error) { 
-            iaDiv.innerHTML = '<div class="ia-msg-content">❌ Error: ' + error.message + '</div>';
-            console.error('Error en chat:', error);
-        }
-        
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    // Función global para replay
-    window.replayLastAudio = function() {
-        if (window.lastResponseText && window.lastResponseVoice) {
-            hablar(window.lastResponseText, window.lastResponseVoice);
-        }
-    };
-
-    // ==================== IA ====================
-    function getNextModel() {
-        const model = AI_MODELS[currentModelIndex];
-        currentModelIndex = (currentModelIndex + 1) % AI_MODELS.length;
-        return model;
-    }
-
-    async function llamarIAOpenAI(model, systemPrompt, userMessage) {
-        const response = await fetch(model.url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${model.api_key}`
-            },
-            body: JSON.stringify({
-                model: model.model,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            })
-        });
-
-        if (!response.ok) throw new Error(`Error ${response.status}`);
-        const data = await response.json();
-        return data.choices[0].message.content;
-    }
-
-    async function llamarIAHuggingFace(model, systemPrompt, userMessage) {
-        const fullMessage = `${systemPrompt}\n\n${userMessage}`;
-        const encodedMessage = encodeURIComponent(fullMessage);
-        
-        const response = await fetch(`${model.url}/preguntar?mensaje=${encodedMessage}`, {
-            method: 'GET'
-        });
-
-        if (!response.ok) throw new Error(`Error ${response.status}`);
-        const data = await response.json();
-        return data.respuesta;
-    }
-
-    async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
-        let ultimoError = null;
-        
-        for (let i = 0; i < intentosMaximos; i++) {
-            const model = getNextModel();
-            
-            try {
-                console.log(`🤖 Intentando: ${model.name}`);
-                
-                let respuesta;
-                if (model.type === 'huggingface') {
-                    respuesta = await llamarIAHuggingFace(model, systemPrompt, userMessage);
-                } else {
-                    respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
-                }
-                
-                console.log(`✅ Éxito con: ${model.name}`);
-                return respuesta;
-                
-            } catch (error) {
-                console.error(`❌ Falló ${model.name}:`, error.message);
-                ultimoError = error;
-                
-                if (i < intentosMaximos - 1) {
-                    console.log('🔄 Rotando al siguiente modelo...');
-                    continue;
-                }
-            }
-        }
-        
-        throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError.message}`);
-    }
-
-    // ==================== VOZ ====================
-    async function hablar(texto, params = null) {
-        if (!texto) return;
-        
-        // Limpiar texto para TTS: remover HTML y formato especial
-        const textoLimpio = texto
-            .replace(/<[^>]*>/g, '') // Remover HTML
-            .replace(/\([^)]*\)/g, '') // Remover acciones entre paréntesis
-            .replace(/\*/g, '') // Remover asteriscos
-            .trim();
-        
-        const voiceModel = params?.voice || currentBot?.voice_type || document.getElementById('voice-select').value;
-        const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
-        const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
-        
-        try {
-            const response = await fetch(PIPER_SERVER, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    text: textoLimpio, 
-                    model: voiceModel, 
-                    length_scale: 1 / rate, 
-                    noise_scale: pitch
-                })
-            });
-            
-            if (!response.ok) throw new Error('Error en servidor Piper');
-            
-            const data = await response.json();
-            const audioData = atob(data.audio);
-            const arrayBuffer = new Uint8Array(audioData.length);
-            for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
-            
-            lastAudioBlob = new Blob([arrayBuffer], { type: 'audio/wav' });
-            const audio = new Audio(URL.createObjectURL(lastAudioBlob));
-            await audio.play();
-        } catch (err) { 
-            console.error("Error Piper:", err); 
-            alert('❌ Error de audio: ' + err.message);
-        }
-    }
-
-    function probarVoz() {
-        const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
-        hablar(texto);
-    }
-
-    function descargarWav() {
-        if (!lastAudioBlob) return alert("⚠️ Primero prueba la voz");
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(lastAudioBlob);
-        a.download = `piper_audio_${Date.now()}.wav`;
-        a.click();
-    }
-
-    // ==================== IMAGEN ====================
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            tempImageFile = file;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const preview = document.getElementById('avatar-preview');
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                document.getElementById('preview-placeholder').style.display = 'none';
-                tempImage = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    // ==================== EVENT LISTENERS ====================
-    document.getElementById('avatar-preview-container').addEventListener('click', () => {
-        document.getElementById('ai-image').click();
-    });
-
-    document.getElementById('ai-image').addEventListener('change', function() {
-        previewImage(this);
-    });
-
-    document.getElementById('voice-rate').addEventListener('input', function() {
-        document.getElementById('val-rate').innerText = this.value;
-    });
-
-    document.getElementById('voice-pitch').addEventListener('input', function() {
-        document.getElementById('val-pitch').innerText = this.value;
-    });
-
-    document.getElementById('btn-test').addEventListener('click', probarVoz);
-    document.getElementById('btn-save').addEventListener('click', guardarPersonaje);
-    document.getElementById('btn-download').addEventListener('click', descargarWav);
-    document.getElementById('btn-enviar').addEventListener('click', enviar);
-
-    document.getElementById('user-input').addEventListener('keypress', (e) => { 
-        if(e.key === 'Enter') enviar(); 
-    });
-
-    document.querySelectorAll('.back-btn, .nav-item').forEach(element => {
-        element.addEventListener('click', function() {
-            const viewId = this.getAttribute('data-view');
-            if (viewId) switchView(viewId);
-        });
-    });
-
-    // ==================== INICIALIZACIÓN ====================
-    window.addEventListener('load', async () => { 
-        lucide.createIcons();
-        
-        if (!initDatabase()) {
-            console.error('⚠️ No se pudo inicializar la base de datos');
-            return;
-        }
-        
-        await cargarPersonajes();
-        
-        if(bots.length > 0) {
-            switchView('view-list'); 
-        }
-        
-        console.log('✅ Aplicación lista');
-        console.log(`🤖 ${AI_MODELS.length} modelos disponibles`);
-        console.log(`📦 Bucket: ${STORAGE_BUCKET}`);
-    });
-
+const respuesta = await enviarMensajeConFailover(systemPrompt, texto);
+const respuestaFormateada = formatearRespuesta(respuesta);
+iaDiv.innerHTML = `
+<div class="ia-msg-content">${respuestaFormateada}</div>
+<button class="btn-replay-audio" onclick="window.replayLastAudio()">
+<i data-lucide="volume-2" size="14"></i> Reproducir
+</button>
+`;
+lucide.createIcons();
+window.lastResponseText = respuesta;
+window.lastResponseVoice = {
+voice: currentBot.voice_type,
+rate: currentBot.rate,
+pitch: currentBot.pitch
+};
+hablar(respuesta, {
+voice: currentBot.voice_type,
+rate: currentBot.rate,
+pitch: currentBot.pitch
+});
+} catch (error) {
+iaDiv.innerHTML = '<div class="ia-msg-content">❌ Error: ' + error.message + '</div>';
+console.error('Error en chat:', error);
+}
+messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+window.replayLastAudio = function() {
+if (window.lastResponseText && window.lastResponseVoice) {
+hablar(window.lastResponseText, window.lastResponseVoice);
+}
+};
+// ==================== IA ====================
+function getNextModel() {
+const model = AI_MODELS[currentModelIndex];
+currentModelIndex = (currentModelIndex + 1) % AI_MODELS.length;
+return model;
+}
+async function llamarIAOpenAI(model, systemPrompt, userMessage) {
+const response = await fetch(model.url, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': `Bearer ${model.api_key}`
+},
+body: JSON.stringify({
+model: model.model,
+messages: [
+{ role: 'system', content: systemPrompt },
+{ role: 'user', content: userMessage }
+],
+temperature: 0.7,
+max_tokens: 500
+})
+});
+if (!response.ok) throw new Error(`Error ${response.status}`);
+const data = await response.json();
+return data.choices[0].message.content;
+}
+async function llamarIAHuggingFace(model, systemPrompt, userMessage) {
+const fullMessage = `${systemPrompt}
+${userMessage}`;
+const encodedMessage = encodeURIComponent(fullMessage);
+const response = await fetch(`${model.url}/preguntar?mensaje=${encodedMessage}`, {
+method: 'GET'
+});
+if (!response.ok) throw new Error(`Error ${response.status}`);
+const data = await response.json();
+return data.respuesta;
+}
+async function enviarMensajeConFailover(systemPrompt, userMessage, intentosMaximos = AI_MODELS.length) {
+let ultimoError = null;
+for (let i = 0; i < intentosMaximos; i++) {
+const model = getNextModel();
+try {
+console.log(`🤖 Intentando: ${model.name}`);
+let respuesta;
+if (model.type === 'huggingface') {
+respuesta = await llamarIAHuggingFace(model, systemPrompt, userMessage);
+} else {
+respuesta = await llamarIAOpenAI(model, systemPrompt, userMessage);
+}
+console.log(`✅ Éxito con: ${model.name}`);
+return respuesta;
+} catch (error) {
+console.error(`❌ Falló ${model.name}:`, error.message);
+ultimoError = error;
+if (i < intentosMaximos - 1) {
+console.log('🔄 Rotando al siguiente modelo...');
+continue;
+}
+}
+}
+throw new Error(`Todos los modelos fallaron. Último error: ${ultimoError.message}`);
+}
+// ==================== VOZ ====================
+async function hablar(texto, params = null) {
+if (!texto) return;
+const textoLimpio = texto
+.replace(/<[^>]*>/g, '')
+.replace(/\([^)]*\)/g, '')
+.replace(/\*/g, '')
+.trim();
+const voiceModel = params?.voice || currentBot?.voice_type || document.getElementById('voice-select').value;
+const rate = parseFloat(params?.rate || document.getElementById('voice-rate').value);
+const pitch = parseFloat(params?.pitch || document.getElementById('voice-pitch').value);
+try {
+const response = await fetch(PIPER_SERVER, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+text: textoLimpio,
+model: voiceModel,
+length_scale: 1 / rate,
+noise_scale: pitch
+})
+});
+if (!response.ok) throw new Error('Error en servidor Piper');
+const data = await response.json();
+const audioData = atob(data.audio);
+const arrayBuffer = new Uint8Array(audioData.length);
+for (let i = 0; i < audioData.length; i++) arrayBuffer[i] = audioData.charCodeAt(i);
+lastAudioBlob = new Blob([arrayBuffer], { type: 'audio/wav' });
+const audio = new Audio(URL.createObjectURL(lastAudioBlob));
+await audio.play();
+} catch (err) {
+console.error("Error Piper:", err);
+alert('❌ Error de audio: ' + err.message);
+}
+}
+function probarVoz() {
+const texto = document.getElementById('test-text').value || "Probando la voz de Piper.";
+hablar(texto);
+}
+function descargarWav() {
+if (!lastAudioBlob) return alert("⚠️ Primero prueba la voz");
+const a = document.createElement('a');
+a.href = URL.createObjectURL(lastAudioBlob);
+a.download = `piper_audio_${Date.now()}.wav`;
+a.click();
+}
+// ==================== IMAGEN ====================
+function previewImage(input) {
+if (input.files && input.files[0]) {
+const file = input.files[0];
+tempImageFile = file;
+const reader = new FileReader();
+reader.onload = (e) => {
+const preview = document.getElementById('avatar-preview');
+preview.src = e.target.result;
+preview.style.display = 'block';
+document.getElementById('preview-placeholder').style.display = 'none';
+tempImage = e.target.result;
+};
+reader.readAsDataURL(file);
+}
+}
+// ==================== EVENT LISTENERS ====================
+document.getElementById('avatar-preview-container').addEventListener('click', () => {
+document.getElementById('ai-image').click();
+});
+document.getElementById('ai-image').addEventListener('change', function() {
+previewImage(this);
+});
+document.getElementById('voice-rate').addEventListener('input', function() {
+document.getElementById('val-rate').innerText = this.value;
+});
+document.getElementById('voice-pitch').addEventListener('input', function() {
+document.getElementById('val-pitch').innerText = this.value;
+});
+document.getElementById('btn-test').addEventListener('click', probarVoz);
+document.getElementById('btn-save').addEventListener('click', guardarPersonaje);
+document.getElementById('btn-download').addEventListener('click', descargarWav);
+document.getElementById('btn-enviar').addEventListener('click', enviar);
+document.getElementById('user-input').addEventListener('keypress', (e) => {
+if(e.key === 'Enter') enviar();
+});
+document.querySelectorAll('.back-btn, .nav-item').forEach(element => {
+element.addEventListener('click', function() {
+const viewId = this.getAttribute('data-view');
+if (viewId) switchView(viewId);
+});
+});
+// ==================== INICIALIZACIÓN ====================
+window.addEventListener('load', async () => {
+lucide.createIcons();
+if (!initDatabase()) {
+console.error('⚠️ No se pudo inicializar la base de datos');
+return;
+}
+await cargarPersonajes();
+if(bots.length > 0) {
+switchView('view-list');
+}
+console.log('✅ Aplicación lista');
+console.log(`🤖 ${AI_MODELS.length} modelos disponibles`);
+console.log(`📦 Bucket: ${STORAGE_BUCKET}`);
+});
 })();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
